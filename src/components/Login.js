@@ -12,7 +12,7 @@ function Login() {
     const [success, setSuccess] = useState('');
     const navigate = useNavigate();
     const { login } = useAuth();
-    const [isLoggingIn, setIsLoggingIn] = useState(false); // New state for tracking login status
+    const [isLoggingIn, setIsLoggingIn] = useState(false); 
 
     useEffect(() => {
         const initializeMsal = async () => {
@@ -53,14 +53,14 @@ function Login() {
     
         try {
             const response = await msalInstance.loginPopup(loginRequest);
-            console.log('Login response:', response); // Log the response
+            console.log('Login response:', response); 
     
             if (response && response.account) {
                 localStorage.setItem('msalAccount', response.account.username);
                 console.log('Bearer Access Token:', response.accessToken);
-                login(); // Update authentication state in context
+                login();
                 setSuccess('Microsoft login successful!');
-                navigate('/secure'); // Redirect after successful login
+                navigate('/secure'); 
             }
         } catch (error) {
             console.error('Microsoft login failed:', error);

@@ -22,7 +22,7 @@ const loginRequest = {
       'Sites.Read.All',
       'Sites.ReadWrite.All',
       'Channel.ReadBasic.All',
-      'Team.ReadBasic.All', // Add this scope
+      'Team.ReadBasic.All',
       'User.Read.All',
       'Directory.Read.All'
     ]

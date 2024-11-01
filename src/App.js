@@ -1,7 +1,7 @@
 // src/App.js
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './components/AuthContext'; // Import useAuth here
+import { AuthProvider, useAuth } from './components/AuthContext'; 
 import Login from './components/Login';
 import SecurePage from './components/checklist';
 import Navigation from './components/navigation';
@@ -31,10 +31,9 @@ const App = () => {
   );
 };
 
-// ProtectedRoute component to handle authentication check
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
-  console.log('Is authenticated:', isAuthenticated); // Debug log
+  console.log('Is authenticated:', isAuthenticated);
 
   return isAuthenticated ? children : <Navigate to="/" replace />;
 };

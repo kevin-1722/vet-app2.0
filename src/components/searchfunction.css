@@ -1,43 +1,43 @@
 .search-container {
-    width: 100%; /* Full width of the parent */
-    max-width: 200px; /* Adjusted max width for smaller size (previously 250px) */
-    margin: 20px auto; /* Center the container with margin */
-    padding: 12px; /* Reduced padding for inner spacing */
-    background-color: #ffffff; /* Background color */
-    border: 2px solid #007bff; /* Border color */
-    border-radius: 10px; /* Rounded corners */
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); /* Shadow for depth */
-    display: flex; /* Use flexbox */
-    justify-content: center; /* Center items horizontally */
-    align-items: center; /* Center items vertically */
+    width: 100%;
+    max-width: 200px;
+    margin: 20px auto; 
+    padding: 12px; 
+    background-color: #ffffff; 
+    border: 2px solid #007bff; 
+    border-radius: 10px; 
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
 }
 
 .search-input {
-    padding: 12px; /* Slightly reduced padding */
-    width: calc(100% - 70px); /* Adjusted width for input (slightly less space for button) */
-    border: none; /* Remove the border from the input */
-    border-radius: 5px; /* Rounded corners */
-    font-size: 15px; /* Reduced font size slightly */
-    transition: border-color 0.3s; /* Transition for focus effect */
+    padding: 12px;
+    width: calc(100% - 70px); 
+    border: none; 
+    border-radius: 5px; 
+    font-size: 15px; 
+    transition: border-color 0.3s;
 }
 
 .search-input:focus {
-    outline: none; /* Remove default outline */
-    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5); /* Shadow on focus */
+    outline: none; 
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5); 
 }
 
 .clear-button {
-    margin-left: 8px; /* Reduced space between input and button */
-    background-color: #dc3545; /* Red background */
-    color: white; /* White text */
-    border: none; /* No border */
-    border-radius: 5px; /* Rounded corners */
-    padding: 6px 10px; /* Adjusted padding for button */
-    cursor: pointer; /* Pointer cursor on hover */
-    font-size: 18px; /* Slightly reduced font size */
-    transition: background-color 0.3s; /* Transition for hover effect */
+    margin-left: 8px; 
+    background-color: #dc3545; 
+    color: white; 
+    border: none; 
+    border-radius: 5px; 
+    padding: 6px 10px; 
+    cursor: pointer; 
+    font-size: 18px; 
+    transition: background-color 0.3s; 
 }
 
 .clear-button:hover {
-    background-color: #c82333; /* Darker red on hover */
+    background-color: #c82333; 
 }

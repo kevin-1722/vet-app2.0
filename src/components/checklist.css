@@ -14,7 +14,7 @@ body {
 .content {
     width: 80%;
     margin: 20px auto;
-    padding: 90px 25px 25px; /* Increased padding for more space */
+    padding: 90px 25px 25px;
     background-color: rgb(255, 255, 255);
     border-radius: 30px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -27,8 +27,8 @@ body {
 
 .company-logo {
     width: 100%;
-    max-width: 240px; /* Adjust based on your logo size */
-    margin: 0px auto 10px; /* Added top margin */
+    max-width: 240px; 
+    margin: 0px auto 10px;
     display: block;
 }
 
@@ -50,7 +50,7 @@ p {
 
 .data-table th,
 .data-table td {
-    padding: 12px; /* Increased padding for better spacing */
+    padding: 12px;
     text-align: center;
     border: 2px solid black;
     font-size: 20px;
@@ -60,25 +60,24 @@ p {
     color: white;
 }
 
-/* Set the specific widths for each column */
 .data-table th:first-child,
 .data-table td:first-child {
-    width: 12%; /* Name column - 25% of the table width */
+    width: 12%; 
 }
 
 .data-table th:nth-child(2),
 .data-table td:nth-child(2) {
-    width: 10%; /* Student ID column - 15% */
+    width: 10%; 
 }
 
 .data-table th:nth-child(3),
 .data-table td:nth-child(3) {
-    width: 15%; /* Benefit column - 10% */
+    width: 15%; 
 }
 
 .data-table th:nth-child(4),
 .data-table td:nth-child(4) {
-    width: 43%; /* Required Documents column - 30% */
+    width: 43%; 
 }
 
 
@@ -87,9 +86,9 @@ p {
 }
 
 .red-header {
-    background-color: red; /* Sets the background color to red */
-    color: white; /* Sets the text color to white for better contrast */
-    padding: 10px; /* Adds some padding for better spacing */
+    background-color: red; 
+    color: white; 
+    padding: 10px; 
 }
 
 .benefit-box {
@@ -99,12 +98,12 @@ p {
     margin-left: 5px;
     border-radius: 5px;
     transition: background-color 0.3s ease;
-    max-width: 200px; /* Limiting width to make it more narrow */
-    word-wrap: break-word; /* Prevent text overflow */
-    white-space: normal; /* Allow text to wrap inside the box */
+    max-width: 200px;
+    word-wrap: break-word; 
+    white-space: normal; 
     display: inline-flex;
     align-items: center;
-    height: 30px; /* Set a fixed height to align with checkboxes */
+    height: 30px; 
 }
 
 .benefit-box.active {
@@ -116,7 +115,7 @@ p {
     display: flex;
     align-items: center;
     margin-top: 10px;
-    gap: 5px; /* Adjust space between checkbox and text */
+    gap: 5px; 
 }
 
 .date-box {
@@ -137,22 +136,83 @@ p {
     display: flex;
     align-items: center;
     margin-top: 5px;
-    gap: 5px; /* Reducing gap to bring checkbox closer */
+    gap: 5px; 
 }
 
 .checkbox-container input[type="checkbox"] {
-    margin: 0; /* Removes extra spacing around the checkbox */
-    width: 20px; /* Ensure width of checkbox is uniform */
-    height: 20px; /* Ensure height of checkbox is uniform */
+    margin: 0; 
+    width: 20px; 
+    height: 20px; 
 }
 
 .checkbox-container label {
     margin: 0;
-    padding-left: 5px; /* Adjust padding to bring the label closer to checkbox */
-    white-space: nowrap; /* Prevent text from wrapping */
+    padding-left: 5px; 
+    white-space: nowrap; 
 }
 
 .secure-page-container {
-    margin-top: 150px; /* Adjust this value to move it down further or less */
-    padding: 20px; /* Optional: Add some padding for aesthetics */
+    margin-top: 150px; 
+    padding: 20px;
+}
+
+
+
+
+
+
+
+.edit-button {
+    background-color: #4CAF50; /* Green background */
+    color: white; /* White text */
+    border: none; /* No border */
+    border-radius: 5px; /* Rounded corners */
+    padding: 8px 12px; /* Padding around the text */
+    cursor: pointer; /* Pointer cursor on hover */
+    font-size: 14px; /* Adjust font size */
+    transition: background-color 0.3s; /* Smooth transition */
+}
+
+.edit-button:hover {
+    background-color: #45a049; /* Darker green on hover */
+}
+
+.save-button {
+    background-color: #2196F3; /* Blue background */
+    color: white; /* White text */
+    border: none; /* No border */
+    border-radius: 5px; /* Rounded corners */
+    padding: 8px 12px; /* Padding around the text */
+    cursor: pointer; /* Pointer cursor on hover */
+    font-size: 14px; /* Adjust font size */
+    transition: background-color 0.3s; /* Smooth transition */
+}
+
+.save-button:hover {
+    background-color: #0b7dda; /* Darker blue on hover */
+}
+
+.cancel-button {
+    background-color: #f44336; /* Red background */
+    color: white; /* White text */
+    border: none; /* No border */
+    border-radius: 5px; /* Rounded corners */
+    padding: 8px 12px; /* Padding around the text */
+    cursor: pointer; /* Pointer cursor on hover */
+    font-size: 14px; /* Adjust font size */
+    transition: background-color 0.3s; /* Smooth transition */
+}
+
+.cancel-button:hover {
+    background-color: #e53935; /* Darker red on hover */
+}
+
+.benefit-label {
+    font-size: 20px; /* Change this value to your preferred font size */
+}
+
+.benefits-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Creates 2 columns; adjust the number if needed */
+    gap: 8px; /* Space between items */
 }

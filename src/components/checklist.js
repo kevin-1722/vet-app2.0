@@ -1,184 +1,247 @@
-import React, { useEffect, useState } from 'react';
-import { fetchChannels, fetchFolders, fetchChildren, fetchFolderContents, getExcelFileDownloadUrl } from './graphService';
-import * as XLSX from 'xlsx'; // Import XLSX
+import React, { useState, useEffect } from 'react'; 
+import { getExcelFileDownloadUrl } from './graphService';
+import * as XLSX from 'xlsx';
+import Search from './searchfunction';
 import './checklist.css';
 
 const SecurePage = () => {
-    const [channels, setChannels] = useState([]);
-    const [folders, setFolders] = useState([]);
-    const [children, setChildren] = useState([]);
-    const [folderContents, setFolderContents] = useState([]);
-    const [excelData, setExcelData] = useState([]); // State for Excel data
+    const [data, setData] = useState([]);
+    const [searchTerm, setSearchTerm] = useState('');
     const [error, setError] = useState(null);
-    
+    const [editingBenefits, setEditingBenefits] = useState({});
+    const [isEditing, setIsEditing] = useState({});
+
+    const requiredDocsMapping = {
+        'Chapter 30': ['COE', 'Enrollment Manager', 'Schedule'],
+        'Chapter 31': ['Enrollment Manager', 'Schedule'],
+        'Chapter 33 Post 9/11': ['COE', 'Enrollment Manager', 'Schedule'],
+        'Chapter 35': ['COE', 'Enrollment Manager', 'Schedule'],
+        'Fed TA': ['TAR', 'Enrollment Manager', 'Schedule'],
+        'State TA': ['Award Letter', 'Enrollment Manager', 'Schedule'],
+        'Missouri Returning Heroes': ['DD214', 'Enrollment Manager', 'Schedule'],
+        'Chapter 1606': ['COE', 'Enrollment Manager', 'Schedule'],
+    };
+
     useEffect(() => {
-        const teamId = '734d50e9-71e2-42be-b2e9-0535ab4c1911'; // Your team ID
-        const driveId = 'b!LaHqOUwB_E6Sn69xhvPUtoG0Qa-dX8dMnq7ayHsvAz4uxaEhOaTLQ7K-kDZ2Itwf'; // Your drive ID
-        const itemId = '01WZNNVP36XNURBTJA2NCJJ2426OLPRHM7'; // ID of the General folder
-        const studentTrackersFolderId = '01WZNNVP23EWLU4M4YXVE2ULM75ROI4H4N'; // ID of the "Student Trackers" folder
-
-        const getChannels = async () => {
-            try {
-                const response = await fetchChannels(teamId);
-                setChannels(response.value || []);
-            } catch (err) {
-                console.error('Error fetching channels:', err);
-                setError('Failed to fetch channels');
-            }
-        };
-
-        const getFolders = async () => {
-            try {
-                const response = await fetchFolders(driveId);
-                setFolders(response.value || []);
-            } catch (err) {
-                console.error('Error fetching folders:', err);
-                setError('Failed to fetch folders');
-            }
-        };
-
-        const getChildren = async () => {
-            try {
-                const response = await fetchChildren(driveId, itemId);
-                setChildren(response.value || []);
-            } catch (err) {
-                console.error('Error fetching children:', err);
-                setError('Failed to fetch children');
-            }
-        };
-
-        const getFolderContents = async () => {
-            try {
-                const response = await fetchFolderContents(studentTrackersFolderId);
-                setFolderContents(response.value || []);
-            } catch (err) {
-                console.error('Error fetching folder contents:', err);
-                setError('Failed to fetch folder contents');
-            }
-        };
+        const driveId = 'b!LaHqOUwB_E6Sn69xhvPUtoG0Qa-dX8dMnq7ayHsvAz4uxaEhOaTLQ7K-kDZ2Itwf';
+        const studentTrackersFolderId = '01WZNNVP23EWLU4M4YXVE2ULM75ROI4H4N';
 
         const getExcelFile = async () => {
             try {
                 const downloadUrl = await getExcelFileDownloadUrl(driveId, studentTrackersFolderId);
                 const response = await fetch(downloadUrl);
-                const blob = await response.blob(); // Get the blob response
-                const data = await blob.arrayBuffer(); // Read the blob as ArrayBuffer
-                const workbook = XLSX.read(data); // Parse the Excel file
-                const sheetName = workbook.SheetNames[0]; // Get the first sheet
+                const blob = await response.blob();
+                const data = await blob.arrayBuffer();
+                const workbook = XLSX.read(data);
+                const sheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[sheetName];
-                const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 }); // Convert to JSON
+                const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-                // Filter the data for the relevant columns
-                const headers = json[0]; // First row as headers
-                const rows = json.slice(1); // Data rows
+                const rows = json.slice(1);
                 const excelData = rows.map(row => ({
-                    name: row[10], // K1 (Last Name, First Name)
-                    studentId: row[13], // N1 (Student ID)
-                    benefit: row[23], // X1 (Benefit)
-                })).filter(item => item.name); // Filter out empty names
-
-                setExcelData(excelData); // Set Excel data state
+                    name: row[10], // Assuming this is the "Last Name, First Name" column
+                    studentId: row[13],
+                    benefit: row[23],
+                })).filter(item => item.name);
+                
+                setData(excelData);
             } catch (err) {
                 console.error('Error fetching Excel file:', err);
                 setError('Failed to fetch Excel file');
             }
         };
 
-        getChannels();
-        getFolders();
-        getChildren();
-        getFolderContents();
-        getExcelFile(); // Fetch the Excel file
+        getExcelFile();
     }, []);
 
+    const filteredData = data.filter(item => {
+        const fullName = item.name || 'Unknown';
+        const [lastName, firstName] = fullName.split(',').map(name => name.trim());
+
+        return (
+            firstName.toLowerCase().startsWith(searchTerm.toLowerCase()) ||
+            lastName.toLowerCase().startsWith(searchTerm.toLowerCase())
+        );
+    });
+
+    const cleanBenefit = (benefit) => {
+        if (benefit.includes("Missouri Returning Heroes")) return "Missouri Returning Heroes";
+        if (benefit.includes("Chapter 33 Post 9/11")) return "Chapter 33 Post 9/11";
+        if (benefit.includes("Chapter 31 VocRehab")) return "Chapter 31";
+        if (benefit.includes("State Tuition Assistance Deadline")) return "State TA";
+        if (benefit.includes("Chapter 35")) return "Chapter 35";
+        if (benefit.includes("Chapter 30 MGIB")) return "Chapter 30";
+        if (benefit.includes("Federal Tuition Assistance Deadline")) return "Fed TA";
+        if (benefit.includes("Chapter 1606")) return "Chapter 1606";
+        return benefit;
+    };
+
+    const getCleanedBenefits = (benefits) => {
+        if (typeof benefits !== 'string') return '';
+        return benefits.split(';').map(benefit => cleanBenefit(benefit.trim())).filter(Boolean).join('; ');
+    };
+
+    const getRequiredDocs = (benefitString) => {
+        if (typeof benefitString !== 'string') return [];
+        const benefits = benefitString.split(';').map(benefit => benefit.trim());
+        const requiredDocsSet = new Set();
+        benefits.forEach(benefit => {
+            const cleanedBenefit = cleanBenefit(benefit);
+            const docs = requiredDocsMapping[cleanedBenefit];
+            if (docs) docs.forEach(doc => requiredDocsSet.add(doc));
+        });
+        return Array.from(requiredDocsSet);
+    };
+
+
+    const handleCheckboxChange = (checkboxId, benefitId) => {
+        const checkbox = document.getElementById(checkboxId);
+        const benefitBox = document.getElementById(benefitId);
+        if (checkbox.checked) {
+            benefitBox.classList.add('active');
+        } else {
+            benefitBox.classList.remove('active');
+        }
+    };
+
+    const updateDate = (studentID) => {
+        const dateBox = document.getElementById(`date-checked-${studentID}`);
+        const checkbox = document.getElementById(`date-${studentID}`);
+        const currentDate = new Date().toLocaleString('default', { month: '2-digit', day: '2-digit' });
+
+        if (checkbox.checked) {
+            dateBox.textContent = currentDate;
+        } else {
+            dateBox.textContent = '';
+        }
+    };
+
+    const toggleEditBenefits = (studentId) => {
+        setIsEditing(prev => ({ ...prev, [studentId]: !prev[studentId] }));
+        if (isEditing[studentId]) {
+            setEditingBenefits(prev => ({ ...prev, [studentId]: undefined }));
+        } else {
+            const currentBenefits = filteredData.find(veteran => veteran.studentId === studentId).benefit;
+            const cleanedBenefits = getCleanedBenefits(currentBenefits).split('; ');
+            setEditingBenefits(prev => ({ ...prev, [studentId]: cleanedBenefits }));
+        }
+    };
+
+    const handleBenefitChange = (studentId, benefit) => {
+        setEditingBenefits(prev => {
+            const current = prev[studentId] || [];
+            if (current.includes(benefit)) {
+                return { ...prev, [studentId]: current.filter(b => b !== benefit) };
+            } else {
+                return { ...prev, [studentId]: [...current, benefit] };
+            }
+        });
+    };
+
+    const handleSaveBenefits = (studentId) => {
+        const selectedBenefits = editingBenefits[studentId] || [];
+        const updatedBenefitString = selectedBenefits.join('; ');
+    
+        // Update the original data with the new benefits
+        setData(prevData => 
+            prevData.map(veteran => 
+                veteran.studentId === studentId ? { ...veteran, benefit: updatedBenefitString } : veteran
+            )
+        );
+    
+        // Reset the editing state
+        setIsEditing(prev => ({ ...prev, [studentId]: false }));
+        setEditingBenefits(prev => ({ ...prev, [studentId]: undefined }));
+    };
+
     return (
-        <div className="secure-page-container">
-            <h2>Channels</h2>
-            {error && <p>{error}</p>}
-            <ul>
-                {channels.length > 0 ? (
-                    channels.map((channel) => (
-                        <li key={channel.id}>
-                            <a href={channel.webUrl} target="_blank" rel="noopener noreferrer">
-                                {channel.displayName}
-                            </a>
-                            {channel.description && <p>{channel.description}</p>}
-                        </li>
-                    ))
-                ) : (
-                    <li>No channels found.</li>
-                )}
-            </ul>
-            
-            <h2>Folders in General Channel</h2>
-            <ul>
-                {folders.length > 0 ? (
-                    folders.map((folder) => (
-                        <li key={folder.id}>
-                            <a href={folder.webUrl} target="_blank" rel="noopener noreferrer">
-                                {folder.name}
-                            </a>
-                        </li>
-                    ))
-                ) : (
-                    <li>No folders found.</li>
-                )}
-            </ul>
-
-            <h2>Items in General Folder</h2>
-            <ul>
-                {children.length > 0 ? (
-                    children.map((item) => (
-                        <li key={item.id}>
-                            <a href={item.webUrl} target="_blank" rel="noopener noreferrer">
-                                {item.name}
-                            </a>
-                        </li>
-                    ))
-                ) : (
-                    <li>No items found in General folder.</li>
-                )}
-            </ul>
-
-            <h2>Contents of Student Trackers</h2>
-            <ul>
-                {folderContents.length > 0 ? (
-                    folderContents.map((item) => (
-                        <li key={item.id}>
-                            <a href={item.webUrl} target="_blank" rel="noopener noreferrer">
-                                {item.name}
-                            </a>
-                        </li>
-                    ))
-                ) : (
-                    <li>No contents found in Student Trackers.</li>
-                )}
-            </ul>
-
-            {/* Display Excel data in a table */}
-            <h2>Veteran Data</h2>
-            {excelData.length > 0 ? (
-                <table>
-                    <thead>
-                        <tr>
-                            <th className="red-header">Name</th>
-                            <th className="red-header">Student ID</th>
-                            <th className="red-header">Benefit</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {excelData.map((veteran, index) => (
-                            <tr key={index}>
-                                <td>{veteran.name}</td>
-                                <td>{veteran.studentId}</td>
-                                <td>{veteran.benefit}</td>
+        <div className="secure-page">
+            <div className="content">
+                <img src="https://i.imgur.com/SROEj2Q.jpeg" alt="Company Logo" className="company-logo" />
+                <Search searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
+                {error && <div className="error-message">{error}</div>}
+                {filteredData.length > 0 ? (
+                    <table className="data-table">
+                        <thead>
+                            <tr>
+                                <th className="red-header">Name</th>
+                                <th className="red-header">Student ID</th>
+                                <th className="red-header">Benefit</th>
+                                <th className="red-header">Required Documents</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
-            ) : (
-                <p>No veteran data found.</p>
-            )}
+                        </thead>
+                        <tbody>
+                            {filteredData.map((veteran, index) => {
+                                const requiredDocs = getRequiredDocs(isEditing[veteran.studentId] ? editingBenefits[veteran.studentId].join('; ') : veteran.benefit);
+
+                                return (
+                                    <tr key={index}>
+                                        <td>{`${veteran.name.split(',')[1].trim()} ${veteran.name.split(',')[0].trim()}`}</td>
+                                        <td>{veteran.studentId}</td>
+                                        <td>
+                                            {isEditing[veteran.studentId] ? (
+                                                <div className="benefits-container">
+                                                    {['Chapter 30', 'Chapter 31', 'Chapter 33 Post 9/11', 'Chapter 35', 'Fed TA', 'State TA', 'Missouri Returning Heroes', 'Chapter 1606'].map((benefit) => (
+                                                        <div key={benefit}>
+                                                            <input
+                                                                type="checkbox"
+                                                                id={`${benefit}-${veteran.studentId}`}
+                                                                checked={editingBenefits[veteran.studentId]?.includes(benefit) || false}
+                                                                onChange={() => handleBenefitChange(veteran.studentId, benefit)}
+                                                            />
+                                                            <label htmlFor={`${benefit}-${veteran.studentId}`} className="benefit-label" >{benefit}</label>
+                                                        </div>
+                                                    ))}
+                                                    <button className="save-button" onClick={() => handleSaveBenefits(veteran.studentId)}>Save</button>
+                                                    <button className="cancel-button" onClick={() => toggleEditBenefits(veteran.studentId)}>Cancel</button>
+                                                </div>
+                                            ) : (
+                                                <div>
+                                                    {getCleanedBenefits(veteran.benefit)}
+                                                    <button className="edit-button" onClick={() => toggleEditBenefits(veteran.studentId)}>Edit</button>
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td>
+                                            {requiredDocs.length > 0 ? (
+                                                requiredDocs.map((doc, docIndex) => (
+                                                    <div key={docIndex} className="checkbox-container">
+                                                        <input
+                                                            type="checkbox"
+                                                            id={`${doc}-${veteran.studentId}`}
+                                                            onChange={() => handleCheckboxChange(`${doc}-${veteran.studentId}`, `box-${doc}-${veteran.studentId}`)}
+                                                        />
+                                                        <label htmlFor={`${doc}-${veteran.studentId}`}>Added</label>
+                                                        <div className="benefit-box" id={`box-${doc}-${veteran.studentId}`}>
+                                                            <span>{doc}</span>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div>No documents required</div>
+                                            )}
+                                            {/* Date Checked section */}
+                                            <div className="date-container">
+                                                <input
+                                                        type="checkbox"
+                                                        id={`date-${veteran.studentId}`}
+                                                        onChange={() => updateDate(veteran.studentId)}
+                                                />
+                                                <label htmlFor={`date-${veteran.studentId}`}>Date Checked</label>
+                                                <div className="date-box" id={`date-box-${veteran.studentId}`}>
+                                                    <span className="date-checked" id={`date-checked-${veteran.studentId}`}></span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                ) : (
+                    <div>No data available.</div>
+                )}
+            </div>
         </div>
     );
 };

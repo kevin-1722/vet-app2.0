@@ -8,19 +8,18 @@ const Navigation = () => {
     const [pdfs, setPdfs] = useState([]);
     const navigate = useNavigate();
 
-    // Check for token or msalAccount on mount
     useEffect(() => {
         const token = localStorage.getItem('token');
         const msalAccount = localStorage.getItem('msalAccount');
         if (!token && !msalAccount) {
-            navigate('/'); // Redirect to login if not authenticated
+            navigate('/'); 
         }
     }, [navigate]);
 
     const handleLogout = () => {
-        localStorage.removeItem('token'); // Clear the token
-        localStorage.removeItem('msalAccount'); // Clear the MSAL account
-        navigate('/'); // Redirect to login page
+        localStorage.removeItem('token'); 
+        localStorage.removeItem('msalAccount'); 
+        navigate('/'); 
     };
 
     const openModal = (modalName) => {
@@ -32,14 +31,14 @@ const Navigation = () => {
 
     const closeModal = () => {
         setModal('');
-        setPdfs([]); // Clear PDFs when closing modal
+        setPdfs([]); 
     };
 
     const fetchPdfs = async () => {
         try {
             const response = await fetch('http://localhost:3000/api/pdfs');
             const data = await response.json();
-            setPdfs(data.length > 0 ? data : []); // Set PDFs or empty array
+            setPdfs(data.length > 0 ? data : []);
         } catch (error) {
             console.error('Error fetching PDFs:', error);
         }
@@ -65,10 +64,9 @@ const Navigation = () => {
                 <div className="box" onClick={() => openModal('dd214')}>DD214</div>
                 <div className="box" onClick={() => openModal('tar')}>TAR</div>
                 <div className="box" onClick={() => openModal('awardLetter')}>Award Letter</div>
-                <div className="logout-button" onClick={handleLogout}>Logout</div> {/* Logout button */}
+                <div className="logout-button" onClick={handleLogout}>Logout</div>
             </div>
 
-            {/* Modal for displaying instructions and PDFs */}
             {modal && (
                 <div className="modal" onClick={closeModal}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>

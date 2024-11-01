@@ -66,17 +66,16 @@ html, body {
     transition: background-color 0.3s ease;
 }
 
-/* Hover effects for buttons */
 .box:hover {
-    background-color: #5a6268; /* Darker gray on hover for reference buttons */
+    background-color: #5a6268; 
 }
 
 .box-scan:hover {
-    background-color: #0056b3; /* Darker blue on hover for Scan button */
+    background-color: #0056b3;
 }
 
 .logout-button:hover {
-    background-color: #c82333; /* Darker red on hover for Logout button */
+    background-color: #c82333; 
 }
 
 /* Modal styles */
@@ -86,12 +85,12 @@ html, body {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.6); /* Transparent black background */
+    background-color: rgba(0, 0, 0, 0.6);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1000;
-    margin: 0; /* Ensure no margin around the modal */
+    margin: 0; 
 }
 
 /* Modal content */
@@ -101,18 +100,16 @@ html, body {
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     text-align: center;
-    width: 80%; /* Increased from 80% */
-    max-width: 1200px; /* Increased max-width for larger screens */
-    height: auto; /* Allow the modal to resize vertically */
+    width: 80%; 
+    max-width: 1200px; 
+    height: auto; 
 }
 
-/* Increase iframe height and modal width for larger PDFs */
 iframe {
-    width: 100%;  /* Keep the iframe full-width */
-    height: 800px; /* Increased height */
+    width: 100%;
+    height: 800px; 
 }
 
-/* Close button for modal */
 .close {
     position: absolute;
     top: 15px;
@@ -122,13 +119,11 @@ iframe {
     color: #333;
 }
 
-/* Heading inside the modal */
 .modal-content h2 {
     margin-bottom: 20px;
     color: #333;
 }
 
-/* Paragraph text in the modal */
 .modal-content p {
     color: #666;
 }
