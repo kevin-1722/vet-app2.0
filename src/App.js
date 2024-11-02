@@ -33,8 +33,6 @@ const App = () => {
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
-  console.log('Is authenticated:', isAuthenticated);
-
   return isAuthenticated ? children : <Navigate to="/" replace />;
 };
 

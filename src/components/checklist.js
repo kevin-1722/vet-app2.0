@@ -5,11 +5,16 @@ import Search from './searchfunction';
 import './checklist.css';
 
 const SecurePage = () => {
-    const [data, setData] = useState([]);
+    const [data, setData] = useState(() => {
+        // Initialize state from localStorage
+        const storedData = localStorage.getItem('excelData');
+        return storedData ? JSON.parse(storedData) : [];
+    });
     const [searchTerm, setSearchTerm] = useState('');
     const [error, setError] = useState(null);
     const [editingBenefits, setEditingBenefits] = useState({});
     const [isEditing, setIsEditing] = useState({});
+    const [checkedDocuments, setCheckedDocuments] = useState({});
 
     const requiredDocsMapping = {
         'Chapter 30': ['COE', 'Enrollment Manager', 'Schedule'],
@@ -45,22 +50,26 @@ const SecurePage = () => {
                 })).filter(item => item.name);
                 
                 setData(excelData);
+                localStorage.setItem('excelData', JSON.stringify(excelData)); // Store data in localStorage
             } catch (err) {
                 console.error('Error fetching Excel file:', err);
                 setError('Failed to fetch Excel file');
             }
         };
-
-        getExcelFile();
-    }, []);
+        if (data.length === 0) {
+            getExcelFile();
+        }
+    }, [data.length]);
 
     const filteredData = data.filter(item => {
         const fullName = item.name || 'Unknown';
         const [lastName, firstName] = fullName.split(',').map(name => name.trim());
+        const studentId = item.studentId ? item.studentId.toString() : ''; // Ensure studentId is a string
 
         return (
             firstName.toLowerCase().startsWith(searchTerm.toLowerCase()) ||
-            lastName.toLowerCase().startsWith(searchTerm.toLowerCase())
+            lastName.toLowerCase().startsWith(searchTerm.toLowerCase()) ||
+            studentId.startsWith(searchTerm.toLowerCase()) // Search by student ID
         );
     });
 
@@ -94,14 +103,25 @@ const SecurePage = () => {
     };
 
 
-    const handleCheckboxChange = (checkboxId, benefitId) => {
-        const checkbox = document.getElementById(checkboxId);
-        const benefitBox = document.getElementById(benefitId);
-        if (checkbox.checked) {
-            benefitBox.classList.add('active');
-        } else {
-            benefitBox.classList.remove('active');
+    // Initialize checked documents state from localStorage
+    useEffect(() => {
+        const storedCheckedDocs = localStorage.getItem('checkedDocuments');
+        if (storedCheckedDocs) {
+            setCheckedDocuments(JSON.parse(storedCheckedDocs));
         }
+    }, []);
+
+    const handleCheckboxChange = (docId, studentId) => {
+        setCheckedDocuments(prev => {
+            const newChecked = !prev[docId] ? true : false;
+            const updatedCheckedDocs = {
+                ...prev,
+                [docId]: newChecked,
+            };
+            // Update localStorage
+            localStorage.setItem('checkedDocuments', JSON.stringify(updatedCheckedDocs));
+            return updatedCheckedDocs;
+        });
     };
 
     const updateDate = (studentID) => {
@@ -209,10 +229,11 @@ const SecurePage = () => {
                                                         <input
                                                             type="checkbox"
                                                             id={`${doc}-${veteran.studentId}`}
+                                                            checked={checkedDocuments[`${doc}-${veteran.studentId}`] || false}
                                                             onChange={() => handleCheckboxChange(`${doc}-${veteran.studentId}`, `box-${doc}-${veteran.studentId}`)}
                                                         />
                                                         <label htmlFor={`${doc}-${veteran.studentId}`}>Added</label>
-                                                        <div className="benefit-box" id={`box-${doc}-${veteran.studentId}`}>
+                                                        <div className={`benefit-box ${checkedDocuments[`${doc}-${veteran.studentId}`] ? 'active' : ''}`} id={`box-${doc}-${veteran.studentId}`}>
                                                             <span>{doc}</span>
                                                         </div>
                                                     </div>
@@ -239,7 +260,7 @@ const SecurePage = () => {
                         </tbody>
                     </table>
                 ) : (
-                    <div>No data available.</div>
+                    <div>Loading data...</div>
                 )}
             </div>
         </div>

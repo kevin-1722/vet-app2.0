@@ -53,11 +53,8 @@ function Login() {
     
         try {
             const response = await msalInstance.loginPopup(loginRequest);
-            console.log('Login response:', response); 
-    
             if (response && response.account) {
                 localStorage.setItem('msalAccount', response.account.username);
-                console.log('Bearer Access Token:', response.accessToken);
                 login();
                 setSuccess('Microsoft login successful!');
                 navigate('/secure'); 

@@ -36,21 +36,21 @@ export const graphApiFetch = async (url, method = 'GET', body = null) => {
     }
 };
 
-export const fetchChannels = async (teamId) => {
-    return graphApiFetch(`/teams/${teamId}/channels`);
-};
+//export const fetchChannels = async (teamId) => {
+    //return graphApiFetch(`/teams/${teamId}/channels`);
+//};
 
-export const fetchFolders = async (driveId) => {
-    return graphApiFetch(`/drives/${driveId}/root/children`);
-};
+//export const fetchFolders = async (driveId) => {
+    //return graphApiFetch(`/drives/${driveId}/root/children`);
+//};
 
 export const fetchChildren = async (driveId, itemId) => {
     return graphApiFetch(`/drives/${driveId}/items/${itemId}/children`);
 };
 
-export const fetchFolderContents = async (folderId) => {
-    return graphApiFetch(`/drives/{driveId}/items/${folderId}/children`);
-};
+//export const fetchFolderContents = async (folderId) => {
+    //return graphApiFetch(`/drives/{driveId}/items/${folderId}/children`);
+//};
 
 export const getExcelFileDownloadUrl = async (driveId, folderId) => {
     const response = await fetchChildren(driveId, folderId);

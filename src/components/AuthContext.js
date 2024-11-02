@@ -10,7 +10,7 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(true);
     };
 
-    const logout = () => {
+    const logout = async () => {
         msalInstance.logout();
         localStorage.removeItem('msalAccount');
         setIsAuthenticated(false);

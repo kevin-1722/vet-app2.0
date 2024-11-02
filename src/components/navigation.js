@@ -16,9 +16,10 @@ const Navigation = () => {
         }
     }, [navigate]);
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
         localStorage.removeItem('token'); 
         localStorage.removeItem('msalAccount'); 
+        localStorage.removeItem('excelData');
         navigate('/'); 
     };
 
