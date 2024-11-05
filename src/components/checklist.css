@@ -163,7 +163,7 @@ p {
 
 
 .edit-button {
-    background-color: #4CAF50; /* Green background */
+    background-color: #808080; /* Green background */
     color: white; /* White text */
     border: none; /* No border */
     border-radius: 5px; /* Rounded corners */
@@ -174,7 +174,7 @@ p {
 }
 
 .edit-button:hover {
-    background-color: #45a049; /* Darker green on hover */
+    background-color: #5a5a5a;  /* Darker green on hover */
 }
 
 .save-button {

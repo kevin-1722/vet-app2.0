@@ -1,5 +1,6 @@
 // src/components/graphService.js 
 import { msalInstance, loginRequest } from './msalInstance';
+import { driveId } from './config'; 
 
 export const graphApiFetch = async (url, method = 'GET', body = null) => {
     try {
@@ -36,22 +37,67 @@ export const graphApiFetch = async (url, method = 'GET', body = null) => {
     }
 };
 
-//export const fetchChannels = async (teamId) => {
-    //return graphApiFetch(`/teams/${teamId}/channels`);
-//};
+export const fetchTopLevelItems = async () => {
+    const items = await graphApiFetch(`/drives/${driveId}/root/children`); // Fetch the top-level items
+    return items; // Return the fetched items
+};
 
-//export const fetchFolders = async (driveId) => {
-    //return graphApiFetch(`/drives/${driveId}/root/children`);
-//};
+
+export const fetchDigitalFilingCabinetId = async () => {
+    const items = await fetchTopLevelItems();
+    const folder = items.value.find(item => item.name === "Digital File Cabinet");
+    if (!folder) throw new Error('Digital Filing Cabinet folder not found');
+    return folder.id; // Return the ID of the folder
+};
+
+export const fetchChannels = async (teamId) => {
+    return graphApiFetch(`/teams/${teamId}/channels`);
+};
+
+export const fetchFileCabinetId = async (driveId, parentFolderId) => {
+    const children = await fetchChildren(driveId, parentFolderId);
+    const folder = children.value.find(item => item.name === "File Cabinet");
+    if (!folder) throw new Error('File Cabinet folder not found');
+    return folder.id; // Return the ID of the File Cabinet folder
+};
+
+export const fetchStudentRecordsId = async (driveId, parentFolderId) => {
+    const children = await fetchChildren(driveId, parentFolderId);
+    const folder = children.value.find(item => item.name === "Student Records");
+    if (!folder) throw new Error('Student Records folder not found');
+    return folder.id; // Return the ID of the Student Records folder
+};
+
+export const fetchCurrentStudentsId = async (driveId, parentFolderId) => {
+    const children = await fetchChildren(driveId, parentFolderId);
+    const folder = children.value.find(item => item.name === "01 Current Students");
+    if (!folder) throw new Error('01 Current Students folder not found');
+    return folder.id; // Return the ID of the 01 Current Students folder
+};
+
+
+export const fetchStudentFolderId = async (driveId, parentFolderId, studentName) => {
+    const children = await fetchChildren(driveId, parentFolderId);
+    const folder = children.value.find(item => item.name === studentName);
+    if (!folder) throw new Error(`${studentName} folder not found`);
+    return folder.id; // Return the ID of the student's folder
+};
+ 
+export const fetchStudentFolderContents= async (driveId, studentFolderId) => {
+    return fetchChildren(driveId, studentFolderId); // Fetch contents of the student's folder
+};
+
+export const fetchSubFolderContents = async (driveId, subFolderId) => {
+    return fetchChildren(driveId, subFolderId); // Fetch contents of a subfolder
+};
+
+
+
+
 
 export const fetchChildren = async (driveId, itemId) => {
     return graphApiFetch(`/drives/${driveId}/items/${itemId}/children`);
 };
-
-//export const fetchFolderContents = async (folderId) => {
-    //return graphApiFetch(`/drives/{driveId}/items/${folderId}/children`);
-//};
-
 export const getExcelFileDownloadUrl = async (driveId, folderId) => {
     const response = await fetchChildren(driveId, folderId);
     const fileItem = response.value.find(file => file.name === "RFC Dummy v2.xlsx");

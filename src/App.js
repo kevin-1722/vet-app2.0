@@ -1,13 +1,23 @@
 // src/App.js
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './components/AuthContext'; 
+import { msalInstance } from './components/msalInstance';
 import Login from './components/Login';
 import SecurePage from './components/checklist';
 import Navigation from './components/navigation';
 import './App.css';
+import ChannelsList from './components/scanTest';
 
 const App = () => {
+  useEffect(() => {
+    const initializeMsal = async () => {
+      await msalInstance.initialize();
+    };
+    initializeMsal();
+  }, []);
+
+
   return (
     <AuthProvider>
       <Router>
@@ -20,6 +30,7 @@ const App = () => {
                 <ProtectedRoute>
                   <Navigation /> 
                   <SecurePage />
+                  <ChannelsList/>
                 </ProtectedRoute>
               } 
             />

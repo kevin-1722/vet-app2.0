@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'; 
 import { getExcelFileDownloadUrl } from './graphService';
+import { driveId, studentTrackersFolderId } from './config';
 import * as XLSX from 'xlsx';
 import Search from './searchfunction';
 import './checklist.css';
@@ -27,9 +28,10 @@ const SecurePage = () => {
         'Chapter 1606': ['COE', 'Enrollment Manager', 'Schedule'],
     };
 
+
     useEffect(() => {
-        const driveId = 'b!LaHqOUwB_E6Sn69xhvPUtoG0Qa-dX8dMnq7ayHsvAz4uxaEhOaTLQ7K-kDZ2Itwf';
-        const studentTrackersFolderId = '01WZNNVP23EWLU4M4YXVE2ULM75ROI4H4N';
+        //const driveId = 'b!LaHqOUwB_E6Sn69xhvPUtoG0Qa-dX8dMnq7ayHsvAz4uxaEhOaTLQ7K-kDZ2Itwf';
+        //const studentTrackersFolderId = '01WZNNVP23EWLU4M4YXVE2ULM75ROI4H4N';
 
         const getExcelFile = async () => {
             try {

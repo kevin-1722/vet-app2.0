@@ -1,9 +1,12 @@
 // src/components/Navigation.js
 import React, { useState, useEffect } from 'react';
 import './navigation.css';
+//import { msalInstance } from './msalInstance';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from './AuthContext';
 
 const Navigation = () => {
+    const { isAuthenticated, logout } = useAuth();
     const [modal, setModal] = useState('');
     const [pdfs, setPdfs] = useState([]);
     const navigate = useNavigate();
@@ -14,13 +17,18 @@ const Navigation = () => {
         if (!token && !msalAccount) {
             navigate('/'); 
         }
-    }, [navigate]);
+    }, [navigate, isAuthenticated]);
+
+    //const handleLogout = async () => {
+        //localStorage.removeItem('token'); 
+        //localStorage.removeItem('msalAccount'); 
+        //localStorage.removeItem('excelData');
+        //navigate('/'); 
+    //};
 
     const handleLogout = async () => {
-        localStorage.removeItem('token'); 
-        localStorage.removeItem('msalAccount'); 
-        localStorage.removeItem('excelData');
-        navigate('/'); 
+        await logout();
+        navigate('/');
     };
 
     const openModal = (modalName) => {
@@ -58,7 +66,7 @@ const Navigation = () => {
     return (
         <div className="navbar">
             <div className="container">
-                <div className="box box-scan" onClick={() => openModal('scan')}>Scan</div>
+                <div className="box box-scan">Scan</div>
                 <div className="box" onClick={() => openModal('coe')}>COE</div>
                 <div className="box" onClick={() => openModal('enrollment')}>Enrollment MG</div>
                 <div className="box" onClick={() => openModal('schedule')}>Schedule</div>

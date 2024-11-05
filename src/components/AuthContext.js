@@ -8,12 +8,28 @@ export const AuthProvider = ({ children }) => {
 
     const login = () => {
         setIsAuthenticated(true);
+        localStorage.setItem('isAuthenticated', 'true');
     };
 
+    //const logout = async () => {
+        //msalInstance.logout();
+        //localStorage.removeItem('msalAccount');
+        //setIsAuthenticated(false);
+    //};
+
     const logout = async () => {
-        msalInstance.logout();
-        localStorage.removeItem('msalAccount');
-        setIsAuthenticated(false);
+        try {
+            await msalInstance.logoutPopup({
+                postLogoutRedirectUri: 'http://localhost:3001',
+                mainWindowRedirectUri: 'http://localhost:3001',
+            });
+            localStorage.removeItem('msalAccount');
+            localStorage.removeItem('isAuthenticated');
+            setIsAuthenticated(false);
+            localStorage.setItem('isAuthenticated', 'false');
+        } catch (error) {
+            console.error('Logout failed', error);
+        }
     };
 
     return (

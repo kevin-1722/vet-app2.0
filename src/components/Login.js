@@ -1,5 +1,5 @@
 // src/components/Login.js
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { msalInstance, loginRequest } from './msalInstance';
 import { useAuth } from './AuthContext';
@@ -13,13 +13,6 @@ function Login() {
     const navigate = useNavigate();
     const { login } = useAuth();
     const [isLoggingIn, setIsLoggingIn] = useState(false); 
-
-    useEffect(() => {
-        const initializeMsal = async () => {
-            await msalInstance.initialize();
-        };
-        initializeMsal();
-    }, []);
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -55,6 +48,7 @@ function Login() {
             const response = await msalInstance.loginPopup(loginRequest);
             if (response && response.account) {
                 localStorage.setItem('msalAccount', response.account.username);
+                console.log('Bearer Access Token:', response.accessToken);
                 login();
                 setSuccess('Microsoft login successful!');
                 navigate('/secure'); 
