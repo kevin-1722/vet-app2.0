@@ -22,8 +22,7 @@ const requiredDocsMapping = {
     'Chapter 1606': ['COE', 'Enrollment Manager', 'Schedule'],
 };
 
-const ScanTest = () => {
-    const [validationResults, setValidationResults] = useState({});
+const Testing = () => {
     const [children, setChildren] = useState([]);
     const [fileCabinetContents, setFileCabinetContents] = useState([]);
     const [studentRecordsContents, setStudentRecordsContents] = useState([]);
@@ -36,7 +35,6 @@ const ScanTest = () => {
     const [isDataLoaded, setIsDataLoaded] = useState(false);
     const [excelData, setExcelData] = useState([]);
     const [studentBenefitsMap, setStudentBenefitsMap] = useState({});
-
 
     const cleanBenefit = (benefit) => {
         if (benefit.includes("Missouri Returning Heroes")) return "Missouri Returning Heroes";
@@ -271,68 +269,46 @@ const ScanTest = () => {
         loadFolderContents();
     }, []);
 
-    const handleScanClick = (studentId) => {
-        const studentName = excelData.find(student => student.studentId === studentId)?.name;
-        if (studentName) {
-            validateNamingConventions(studentName, studentFoldersMap[studentName] || []);
-        }
-    };
-    
-    useEffect(() => {
-        if (Object.keys(validationResultsMap).length > 0) {
-            setValidationResults(validationResultsMap);
-        }
-    }, [validationResultsMap]);
-
     if (error) return <p>{error}</p>;
     if (loading) return <p>Loading...</p>;
 
     return (
         <div>
-            <h2>Veteran Records</h2>
-            <table border="1">
-                <thead>
-                    <tr>
-                        <th>Last Name, First Name</th>
-                        <th>Student ID</th>
-                        <th>Benefit</th>
-                        <th>Required Documents</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {excelData.map((student, index) => {
-                        const { name, studentId, benefit } = student;
-                        const requiredDocs = requiredDocsMapping[cleanBenefit(benefit)] || [];
-                        const validation = validationResults[name] || {};
-
-                        return (
-                            <tr key={index}>
-                                <td>{name}</td>
-                                <td>{studentId}</td>
-                                <td>{cleanBenefit(benefit)}</td>
-                                <td>
-                                    {requiredDocs.map((doc, idx) => (
-                                        <div key={idx} style={{ display: 'flex', alignItems: 'center' }}>
-                                            <span>{doc}</span>
-                                            <input
-                                                type="checkbox"
-                                                checked={validation[`${doc.toLowerCase()}Valid`] || false}
-                                                readOnly
-                                                style={{ marginLeft: '5px' }}
-                                            />
-                                        </div>
-                                    ))}
-                                </td>
-                                <td>
-                                    <button onClick={() => handleScanClick(studentId)}>Scan</button>
-                                </td>
-                            </tr>
-                        );
-                    })}
-                </tbody>
-            </table>
+            <h2>Current Students and Their Folders</h2>
+            {currentStudentsContents.map((student) => (
+                <div key={student.id}>
+                    <h3>{student.name}</h3>
+                    <p>Benefit: {validationResultsMap[student.name]?.benefit || 'Loading...'}</p>
+                    <ul>
+                        {studentFoldersMap[student.name]?.map((subfolder) => (
+                            <li key={subfolder.id}>
+                                {subfolder.name}
+                                <button onClick={() => loadSubFolderContents(subfolder.id)}>
+                                    View Contents
+                                </button>
+                                {subFolderContentMap[subfolder.id] && (
+                                    <ul>
+                                        {subFolderContentMap[subfolder.id].map((content) => (
+                                            <li key={content.id}>{content.name}</li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </li>
+                        ))}
+                    </ul>
+                    <h4>Validation Results</h4>
+                    <ul>
+                        <li>{validationResultsMap[student.name]?.benefit === 'Missouri Returning Heroes' ? 'DD214' :
+                            validationResultsMap[student.name]?.benefit === 'Fed TA' ? 'TAR' :
+                            validationResultsMap[student.name]?.benefit === 'State TA' ? 'Award Letter' :
+                            'COE'}: {validationResultsMap[student.name]?.coeValid ? 'Yes' : 'No'}</li>
+                        <li>Enrollment Manager: {validationResultsMap[student.name]?.emValid ? 'Yes' : 'No'}</li>
+                        <li>Schedule: {validationResultsMap[student.name]?.schedValid ? 'Yes' : 'No'}</li>
+                    </ul>
+                </div>
+            ))}
         </div>
     );
 };
 
-    export default ScanTest;
+export default Testing;

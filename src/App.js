@@ -7,7 +7,8 @@ import Login from './components/Login';
 import SecurePage from './components/checklist';
 import Navigation from './components/navigation';
 import './App.css';
-import ChannelsList from './components/scanTest';
+import ScanTest from './components/scanTest';
+import Testing from './components/testing';
 
 const App = () => {
   useEffect(() => {
@@ -30,7 +31,8 @@ const App = () => {
                 <ProtectedRoute>
                   <Navigation /> 
                   <SecurePage />
-                  <ChannelsList/>
+                  <ScanTest />
+                  <Testing/>
                 </ProtectedRoute>
               } 
             />
