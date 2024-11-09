@@ -1,4 +1,18 @@
 import React, { useEffect, useState } from 'react';
+import { Check, X } from 'lucide-react'; //npm install lucide-react
+import { 
+    Button,
+    Card,
+    CardContent,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    Paper,
+    Typography
+} from '@mui/material'; //npm install @mui/material @emotion/react @emotion/styled
 import { 
     fetchDigitalFilingCabinetId, 
     fetchChildren, 
@@ -22,8 +36,17 @@ const requiredDocsMapping = {
     'Chapter 1606': ['COE', 'Enrollment Manager', 'Schedule'],
 };
 
-const ScanTest = () => {
-    const [validationResults, setValidationResults] = useState({});
+const DocumentStatus = ({ isPresent }) => (
+    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        {isPresent ? (
+            <Check style={{ width: '16px', height: '16px', color: '#22c55e' }} />
+        ) : (
+            <X style={{ width: '16px', height: '16px', color: '#ef4444' }} />
+        )}
+    </span>
+);
+
+const Testing = () => {
     const [children, setChildren] = useState([]);
     const [fileCabinetContents, setFileCabinetContents] = useState([]);
     const [studentRecordsContents, setStudentRecordsContents] = useState([]);
@@ -36,7 +59,7 @@ const ScanTest = () => {
     const [isDataLoaded, setIsDataLoaded] = useState(false);
     const [excelData, setExcelData] = useState([]);
     const [studentBenefitsMap, setStudentBenefitsMap] = useState({});
-
+    const [hasScanned, setHasScanned] = useState(false);
 
     const cleanBenefit = (benefit) => {
         if (benefit.includes("Missouri Returning Heroes")) return "Missouri Returning Heroes";
@@ -76,7 +99,6 @@ const ScanTest = () => {
 
                 setExcelData(excelData);
                 
-                // Create a map of student IDs to their cleaned benefits
                 const benefitsMap = {};
                 excelData.forEach(student => {
                     benefitsMap[student.studentId] = cleanBenefit(student.benefit || '');
@@ -130,15 +152,6 @@ const ScanTest = () => {
         setStudentFoldersMap(newStudentFoldersMap);
     };
 
-    useEffect(() => {
-        if (isDataLoaded && Object.keys(studentFoldersMap).length > 0 && Object.keys(subFolderContentMap).length > 0) {
-            console.log("Starting validation for all students...");
-            Object.entries(studentFoldersMap).forEach(([studentName, subFolders]) => {
-                validateNamingConventions(studentName, subFolders);
-            });
-        }
-    }, [isDataLoaded, studentFoldersMap, subFolderContentMap]);
-
     const validateNamingConventions = (studentName, subFolders) => {
         console.log(`Starting validation for ${studentName}...`, { subFolders });
         let coeValid = false;
@@ -148,7 +161,6 @@ const ScanTest = () => {
 
         try {
             const studentId = studentName.split(' ').pop();
-            // Get the cleaned benefit
             const rawBenefit = studentBenefitsMap[studentId] || '';
             const benefit = cleanBenefit(rawBenefit);
             
@@ -168,11 +180,8 @@ const ScanTest = () => {
                     return currNum > prevNum ? current : prev;
                 }, subFolders.find(folder => /^\d+/.test(folder.name)));
 
-            console.log(`Most recent folder for ${studentName}:`, mostRecentFolder);
-
             subFolders.forEach((folder) => {
                 const contents = subFolderContentMap[folder.id] || [];
-                console.log(`Checking folder ${folder.name} contents:`, contents);
 
                 if (folder.name === "00") {
                     if (benefit === 'Missouri Returning Heroes') {
@@ -221,10 +230,9 @@ const ScanTest = () => {
                     coeValid, 
                     emValid, 
                     schedValid,
-                    benefit // Store the cleaned benefit
+                    benefit
                 }
             }));
-
             console.log(`Validation results for ${studentName}:`, { 
                 benefit,
                 coeValid, 
@@ -234,6 +242,34 @@ const ScanTest = () => {
 
         } catch (error) {
             console.error(`Error validating naming conventions for ${studentName}:`, error);
+        }
+    };
+
+    const handleScan = async () => {
+        if (isDataLoaded && Object.keys(studentFoldersMap).length > 0) {
+            Object.entries(studentFoldersMap).forEach(([studentName, subFolders]) => {
+                validateNamingConventions(studentName, subFolders);
+            });
+            setHasScanned(true);
+        }
+    };
+
+    const getDocumentStatus = (studentName, docType) => {
+        if (!hasScanned || !validationResultsMap[studentName]) return false;
+        
+        const results = validationResultsMap[studentName];
+        switch (docType) {
+            case 'COE':
+            case 'DD214':
+            case 'TAR':
+            case 'Award Letter':
+                return results.coeValid;
+            case 'Enrollment Manager':
+                return results.emValid;
+            case 'Schedule':
+                return results.schedValid;
+            default:
+                return false;
         }
     };
 
@@ -271,68 +307,72 @@ const ScanTest = () => {
         loadFolderContents();
     }, []);
 
-    const handleScanClick = (studentId) => {
-        const studentName = excelData.find(student => student.studentId === studentId)?.name;
-        if (studentName) {
-            validateNamingConventions(studentName, studentFoldersMap[studentName] || []);
-        }
-    };
-    
-    useEffect(() => {
-        if (Object.keys(validationResultsMap).length > 0) {
-            setValidationResults(validationResultsMap);
-        }
-    }, [validationResultsMap]);
-
-    if (error) return <p>{error}</p>;
-    if (loading) return <p>Loading...</p>;
+    if (error) return <Typography color="error">{error}</Typography>;
+    if (loading) return <Typography>Loading...</Typography>;
 
     return (
-        <div>
-            <h2>Veteran Records</h2>
-            <table border="1">
-                <thead>
-                    <tr>
-                        <th>Last Name, First Name</th>
-                        <th>Student ID</th>
-                        <th>Benefit</th>
-                        <th>Required Documents</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {excelData.map((student, index) => {
-                        const { name, studentId, benefit } = student;
-                        const requiredDocs = requiredDocsMapping[cleanBenefit(benefit)] || [];
-                        const validation = validationResults[name] || {};
-
-                        return (
-                            <tr key={index}>
-                                <td>{name}</td>
-                                <td>{studentId}</td>
-                                <td>{cleanBenefit(benefit)}</td>
-                                <td>
-                                    {requiredDocs.map((doc, idx) => (
-                                        <div key={idx} style={{ display: 'flex', alignItems: 'center' }}>
-                                            <span>{doc}</span>
-                                            <input
-                                                type="checkbox"
-                                                checked={validation[`${doc.toLowerCase()}Valid`] || false}
-                                                readOnly
-                                                style={{ marginLeft: '5px' }}
-                                            />
-                                        </div>
-                                    ))}
-                                </td>
-                                <td>
-                                    <button onClick={() => handleScanClick(studentId)}>Scan</button>
-                                </td>
-                            </tr>
-                        );
-                    })}
-                </tbody>
-            </table>
-        </div>
+        <Card sx={{ width: '100%' }}>
+            <CardContent sx={{ padding: 3 }}>
+                <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center', 
+                    marginBottom: '1rem' 
+                }}>
+                    <Typography variant="h5" component="h2">
+                        Veteran Document Tracker
+                    </Typography>
+                    <Button 
+                        variant="contained"
+                        onClick={handleScan}
+                        disabled={!isDataLoaded}
+                        sx={{ backgroundColor: '#1976d2' }}
+                    >
+                        Scan Documents
+                    </Button>
+                </div>
+                
+                <TableContainer component={Paper}>
+                    <Table>
+                        <TableHead>
+                            <TableRow>
+                                <TableCell>Name</TableCell>
+                                <TableCell>Student ID</TableCell>
+                                <TableCell>Benefit</TableCell>
+                                <TableCell>Required Documents</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {excelData.map((student) => {
+                                const benefit = studentBenefitsMap[student.studentId] || '';
+                                const requiredDocs = requiredDocsMapping[benefit] || [];
+                                
+                                return (
+                                    <TableRow key={student.studentId}>
+                                        <TableCell>{student.name}</TableCell>
+                                        <TableCell>{student.studentId}</TableCell>
+                                        <TableCell>{benefit}</TableCell>
+                                        <TableCell>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                {requiredDocs.map((doc) => (
+                                                    <div key={doc} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        <DocumentStatus 
+                                                            isPresent={getDocumentStatus(student.name, doc)} 
+                                                        />
+                                                        <span>{doc}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            </CardContent>
+        </Card>
     );
 };
 
-    export default ScanTest;
+export default Testing;
