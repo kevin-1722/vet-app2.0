@@ -110,21 +110,24 @@ const Testing = () => {
         console.log("Loading all student folders...");
         const newStudentFoldersMap = {};
         
-        for (const student of students) {
+        const loadFoldersPromises = students.map(async (student) => {
             try {
                 console.log(`Fetching subfolders for student: ${student.name}`);
                 const studentFolderContents = await fetchSubFolderContents(driveId, student.id);
                 newStudentFoldersMap[student.name] = studentFolderContents.value;
                 console.log(`Subfolders found for ${student.name}:`, studentFolderContents.value);
-
-                for (const subfolder of studentFolderContents.value) {
-                    await loadSubFolderContents(subfolder.id);
-                }
+    
+                const subfolderPromises = studentFolderContents.value.map(subfolder => 
+                    loadSubFolderContents(subfolder.id)
+                );
+                await Promise.all(subfolderPromises);
             } catch (error) {
                 console.error(`Error processing student folder ${student.name}:`, error);
             }
-        }
-        
+        });
+    
+        await Promise.all(loadFoldersPromises);
+    
         setStudentFoldersMap(newStudentFoldersMap);
     };
 

@@ -32,7 +32,7 @@ const App = () => {
                   <Navigation /> 
                   <SecurePage />
                   <ScanTest />
-                  <Testing/>
+                  <Testing />
                 </ProtectedRoute>
               } 
             />
