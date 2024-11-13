@@ -11,12 +11,6 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('isAuthenticated', 'true');
     };
 
-    //const logout = async () => {
-        //msalInstance.logout();
-        //localStorage.removeItem('msalAccount');
-        //setIsAuthenticated(false);
-    //};
-
     const logout = async () => {
         try {
             await msalInstance.logoutPopup({

@@ -55,6 +55,7 @@ const Testing = () => {
     console.log('Initializing Veterans Document Tracker component');
 
     const [showTable, setShowTable] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
     const [children, setChildren] = useState([]);
     const [fileCabinetContents, setFileCabinetContents] = useState([]);
     const [studentRecordsContents, setStudentRecordsContents] = useState([]);
@@ -69,6 +70,7 @@ const Testing = () => {
     const [studentBenefitsMap, setStudentBenefitsMap] = useState({});
     const [hasScanned, setHasScanned] = useState(false);
     const [studentNameToIdMap, setStudentNameToIdMap] = useState({});
+
 
     const cleanBenefit = (benefit) => {
         console.log('Cleaning benefit:', benefit);
@@ -157,30 +159,28 @@ const Testing = () => {
     };
 
     const loadAllStudentFolders = async (currentStudentsId, students) => {
-        console.log('Starting to load all student folders');
-        console.log('Total students to process:', students.length);
-        
+        console.log("Loading all student folders...");
         const newStudentFoldersMap = {};
         
-        for (const student of students) {
+        const loadFoldersPromises = students.map(async (student) => {
             try {
-                console.log('Processing student folder:', student.name);
+                console.log(`Fetching subfolders for student: ${student.name}`);
                 const studentFolderContents = await fetchSubFolderContents(driveId, student.id);
-                console.log('Student folder contents:', studentFolderContents.value);
                 newStudentFoldersMap[student.name] = studentFolderContents.value;
-                
-                for (const subfolder of studentFolderContents.value) {
-                    console.log('Loading subfolder:', subfolder.name);
-                    await loadSubFolderContents(subfolder.id);
-                }
+                console.log(`Subfolders found for ${student.name}:`, studentFolderContents.value);
+    
+                const subfolderPromises = studentFolderContents.value.map(subfolder => 
+                    loadSubFolderContents(subfolder.id)
+                );
+                await Promise.all(subfolderPromises);
             } catch (error) {
-                console.error(`Error processing student ${student.name}:`, error);
+                console.error(`Error processing student folder ${student.name}:`, error);
             }
-        }
-        
-        console.log('Completed loading all student folders');
+        });
+    
+        await Promise.all(loadFoldersPromises);
+    
         setStudentFoldersMap(newStudentFoldersMap);
-        return newStudentFoldersMap;
     };
 
     const validateNamingConventions = (studentName, subFolders) => {

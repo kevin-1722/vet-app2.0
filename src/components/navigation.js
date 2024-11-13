@@ -1,7 +1,6 @@
 // src/components/Navigation.js
 import React, { useState, useEffect } from 'react';
 import './navigation.css';
-//import { msalInstance } from './msalInstance';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { fetchPdfsFromFolder, getFileDownloadUrl } from './graphService';
@@ -9,7 +8,6 @@ import { fetchPdfsFromFolder, getFileDownloadUrl } from './graphService';
 const Navigation = () => {
     const { isAuthenticated, logout } = useAuth();
     const [modal, setModal] = useState('');
-    const [pdfs, setPdfs] = useState([]);
     const [pdfUrl, setPdfUrl] = useState(''); // State for PDF URL
     const [loading, setLoading] = useState(false); // For loading state
     const navigate = useNavigate();
@@ -21,13 +19,6 @@ const Navigation = () => {
             navigate('/'); 
         }
     }, [navigate, isAuthenticated]);
-
-    //const handleLogout = async () => {
-        //localStorage.removeItem('token'); 
-        //localStorage.removeItem('msalAccount'); 
-        //localStorage.removeItem('excelData');
-        //navigate('/'); 
-    //};
 
     const handleLogout = async () => {
         await logout();
