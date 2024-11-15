@@ -10,6 +10,7 @@ import Navigation from './components/navigation';
 import './App.css';
 import ScanTest from './components/scanTest';
 import Testing from './components/testing';
+import MergedDocumentTracker from './components/docScanner';
 
 const App = () => {
   const [isInitialized, setIsInitialized] = useState(false);
@@ -42,9 +43,10 @@ const App = () => {
               element={
                 <ProtectedRoute>
                   <Navigation /> 
-                  <SecurePage />
+                  {/* <SecurePage />
                   <ScanTest />
-                  <Testing />
+                  <Testing /> */}
+                  <MergedDocumentTracker />
                 </ProtectedRoute>
               } 
             />
