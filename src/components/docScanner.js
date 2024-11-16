@@ -1,55 +1,21 @@
+// src/components/docScanner.js
 import React, { useEffect, useState } from 'react';
-import { Check, X } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { 
-    fetchDigitalFilingCabinetId, 
-    fetchChildren, 
-    fetchFileCabinetId, 
-    fetchStudentRecordsId, 
-    fetchCurrentStudentsId,
-    fetchSubFolderContents,
-    getExcelFileDownloadUrl 
+    fetchDigitalFilingCabinetId, fetchChildren, fetchFileCabinetId, fetchStudentRecordsId, 
+    fetchCurrentStudentsId,fetchSubFolderContents,getExcelFileDownloadUrl 
 } from './graphService';
 import { driveId, studentTrackersFolderId } from './config';
-import * as XLSX from 'xlsx';
+import Search from './search';
+import DataTable from './dataTable';
 import './docScanner.css';
-
-
-const Search = ({ searchTerm, setSearchTerm }) => {
-    return (
-        <div className="search-container">
-            <input
-                type="text"
-                className="search-input"
-                placeholder="Search for veteran..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            <button 
-                className="clear-button"
-                onClick={() => setSearchTerm('')}
-            >
-                x
-            </button>
-        </div>
-    );
-};
-
-const requiredDocsMapping = {
-    'Chapter 30': ['COE', 'Enrollment Manager', 'Schedule'],
-    'Chapter 31': ['Enrollment Manager', 'Schedule'],
-    'Chapter 33 Post 9/11': ['COE', 'Enrollment Manager', 'Schedule'],
-    'Chapter 35': ['COE', 'Enrollment Manager', 'Schedule'],
-    'Fed TA': ['TAR', 'Enrollment Manager', 'Schedule'],
-    'State TA': ['Award Letter', 'Enrollment Manager', 'Schedule'],
-    'Missouri Returning Heroes': ['DD214', 'Enrollment Manager', 'Schedule'],
-    'Chapter 1606': ['COE', 'Enrollment Manager', 'Schedule'],
-};
 
 const MergedDocumentTracker = () => {
     const [dateChecked, setDateChecked] = useState(() => {
         const stored = localStorage.getItem('dateChecked');
         return stored ? JSON.parse(stored) : {};
     });
+    const [showCompleted, setShowCompleted] = useState(false);
     const [data, setData] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [error, setError] = useState(null);
@@ -67,14 +33,24 @@ const MergedDocumentTracker = () => {
     const [hasScanned, setHasScanned] = useState(false);
     const [studentBenefitsMap, setStudentBenefitsMap] = useState({});
 
-    // Initialize checked documents state from localStorage
+    const requiredDocsMapping = {
+        'Chapter 30': ['COE', 'Enrollment Manager', 'Schedule'],
+        'Chapter 31': ['Enrollment Manager', 'Schedule'],
+        'Chapter 33 Post 9/11': ['COE', 'Enrollment Manager', 'Schedule'],
+        'Chapter 35': ['COE', 'Enrollment Manager', 'Schedule'],
+        'Fed TA': ['TAR', 'Enrollment Manager', 'Schedule'],
+        'State TA': ['Award Letter', 'Enrollment Manager', 'Schedule'],
+        'Missouri Returning Heroes': ['DD214', 'Enrollment Manager', 'Schedule'],
+        'Chapter 1606': ['COE', 'Enrollment Manager', 'Schedule'],
+    };
+
+
     useEffect(() => {
         const storedCheckedDocs = localStorage.getItem('checkedDocuments');
         if (storedCheckedDocs) {
             setCheckedDocuments(JSON.parse(storedCheckedDocs));
         }
     }, []);
-
 
     const cleanBenefit = (benefit) => {
         if (!benefit) return '';
@@ -89,9 +65,14 @@ const MergedDocumentTracker = () => {
         return benefit;
     };
 
-    // Excel File Loading
-    useEffect(() => {
-        const getExcelFile = async () => {
+    const isStudentComplete = (studentId, benefit) => {
+        const requiredDocs = requiredDocsMapping[benefit] || [];
+        return requiredDocs.every(doc => 
+            checkedDocuments[`${studentId}-${doc}`] || getDocumentStatus(studentId, doc)
+        );
+    };
+    
+        const fetchExcelData = async () => {
             try {
                 const downloadUrl = await getExcelFileDownloadUrl(driveId, studentTrackersFolderId);
                 const response = await fetch(downloadUrl);
@@ -101,14 +82,14 @@ const MergedDocumentTracker = () => {
                 const sheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[sheetName];
                 const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-
+    
                 const rows = json.slice(1);
                 const excelData = rows.map(row => ({
                     name: row[10],
                     studentId: row[13],
                     benefit: row[23],
                 })).filter(item => item.name);
-
+    
                 setData(excelData);
                 
                 const benefitsMap = {};
@@ -121,14 +102,7 @@ const MergedDocumentTracker = () => {
                 setError('Failed to fetch Excel file');
             }
         };
-
-        if (data.length === 0) {
-            getExcelFile();
-        }
-    }, [data.length]);
-
-    // Load folder contents
-    useEffect(() => {
+    
         const loadFolderContents = async () => {
             setLoading(true);
             try {
@@ -136,15 +110,15 @@ const MergedDocumentTracker = () => {
                 const fileCabinetId = await fetchFileCabinetId(driveId, folderId);
                 const fileCabinetChildren = await fetchChildren(driveId, fileCabinetId);
                 setFileCabinetContents(fileCabinetChildren.value);
-
+    
                 const studentRecordsId = await fetchStudentRecordsId(driveId, fileCabinetId);
                 const studentRecordsChildren = await fetchChildren(driveId, studentRecordsId);
                 setStudentRecordsContents(studentRecordsChildren.value);
-
+    
                 const currentStudentsId = await fetchCurrentStudentsId(driveId, studentRecordsId);
                 const currentStudentsChildren = await fetchChildren(driveId, currentStudentsId);
                 setCurrentStudentsContents(currentStudentsChildren.value);
-
+    
                 await loadAllStudentFolders(currentStudentsId, currentStudentsChildren.value);
                 
                 setIsDataLoaded(true);
@@ -154,9 +128,34 @@ const MergedDocumentTracker = () => {
                 setLoading(false);
             }
         };
-
-        loadFolderContents();
-    }, []);
+    
+        const handleRefresh = async () => {
+            setLoading(true);
+            setError(null);
+            setHasScanned(false);
+            setValidationResultsMap({});
+            
+            try {
+                await Promise.all([
+                    fetchExcelData(),
+                    loadFolderContents()
+                ]);
+            } catch (error) {
+                setError('Failed to refresh data. Please try again.');
+            } finally {
+                setLoading(false);
+            }
+        };
+    
+        useEffect(() => {
+            if (data.length === 0) {
+                fetchExcelData();
+            }
+        }, [data.length]);
+    
+        useEffect(() => {
+            loadFolderContents();
+        }, []);
 
     const loadSubFolderContents = async (subFolderId) => {
         try {
@@ -296,20 +295,22 @@ const MergedDocumentTracker = () => {
 
     const filterData = (data, searchTerm) => {
         return data.filter(item => {
-          const fullName = item.name || 'Unknown';
-          const [lastName, firstName] = fullName.split(',').map(name => name.trim());
-          const studentId = item.studentId ? item.studentId.toString() : '';
-    
-          const searchTermLower = searchTerm.toLowerCase();
-          return (
-            firstName.toLowerCase().includes(searchTermLower) ||
-            lastName.toLowerCase().includes(searchTermLower) ||
-            studentId.includes(searchTermLower)
-          );
+            const fullName = item.name || 'Unknown';
+            const [lastName, firstName] = fullName.split(',').map(name => name.trim());
+            const studentId = item.studentId ? item.studentId.toString() : '';
+            const benefit = studentBenefitsMap[studentId] || '';
+            const matchesSearch = 
+                firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                studentId.includes(searchTerm.toLowerCase());
+            const isComplete = isStudentComplete(studentId, benefit);
+            
+            return matchesSearch && (showCompleted ? isComplete : !isComplete);
         });
-      };
-    
-      const filteredData = filterData(data, searchTerm);
+    };
+
+    const filteredData = filterData(data, searchTerm);
+
 
 
       useEffect(() => {
@@ -321,13 +322,11 @@ const MergedDocumentTracker = () => {
         if (storedDates) {
             setDateChecked(JSON.parse(storedDates));
         }
-
-        // Clean up expired dates
         const now = new Date();
         const updatedDates = { ...JSON.parse(storedDates || '{}') };
         Object.entries(updatedDates).forEach(([id, dateStr]) => {
             const date = new Date(dateStr);
-            if ((now - date) > (2 * 24 * 60 * 60 * 1000)) { // 2 days in milliseconds
+            if ((now - date) > (2 * 24 * 60 * 60 * 1000)) {
                 delete updatedDates[id];
             }
         });
@@ -360,7 +359,6 @@ const MergedDocumentTracker = () => {
         });
     };
 
-    // This effect will run after scanning to uncheck manually checked boxes that shouldn't be checked
     useEffect(() => {
         if (hasScanned) {
             const updatedCheckedDocs = { ...checkedDocuments };
@@ -377,16 +375,51 @@ const MergedDocumentTracker = () => {
         }
     }, [hasScanned, validationResultsMap]);
 
+    const getCompletionCounts = () => {
+        const incomplete = data.filter(item => 
+            !isStudentComplete(item.studentId, studentBenefitsMap[item.studentId])
+        ).length;
+        
+        const complete = data.filter(item => 
+            isStudentComplete(item.studentId, studentBenefitsMap[item.studentId])
+        ).length;
+
+        return { incomplete, complete };
+    };
+
+    const { incomplete, complete } = getCompletionCounts();
+
+
     return (
         <div className="secure-page">
             <div className="content">
                 <img src="https://i.imgur.com/SROEj2Q.jpeg" alt="Company Logo" className="company-logo" />
                 <div className="header-controls">
-                    <div></div>
+                    <div className="view-toggle">
+                        <button 
+                            className={`toggle-button ${!showCompleted ? 'active' : ''}`}
+                            onClick={() => setShowCompleted(false)}
+                        >
+                            Incomplete ({incomplete})
+                        </button>
+                        <button 
+                            className={`toggle-button ${showCompleted ? 'active' : ''}`}
+                            onClick={() => setShowCompleted(true)}
+                        >
+                            Complete ({complete})
+                        </button>
+                    </div>
                     <div>
                         <Search searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
                     </div>
                     <div className="scan-button-container">
+                        <button 
+                            className="refresh-button"
+                            onClick={handleRefresh}
+                            disabled={loading}
+                        >
+                            {loading ? 'Refreshing...' : 'Refresh Data'}
+                        </button>
                         <button 
                             className="scan-button"
                             onClick={handleScan}
@@ -398,109 +431,30 @@ const MergedDocumentTracker = () => {
                 </div>
                 
                 {error && <div className="error-message">{error}</div>}
+                {loading && <div className="loading-message">Loading...</div>}
     
                 {filteredData.length > 0 ? (
-                    <table className="data-table">
-                        <thead>
-                            <tr>
-                                <th className="red-header">Name</th>
-                                <th className="red-header">Student ID</th>
-                                <th className="red-header">Benefit</th>
-                                <th className="red-header">Required Documents</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredData.map((veteran, index) => {
-                                const benefit = studentBenefitsMap[veteran.studentId] || '';
-                                const requiredDocs = requiredDocsMapping[benefit] || [];
-    
-                                return (
-                                    <tr key={index}>
-                                        <td>{veteran.name}</td>
-                                        <td>{veteran.studentId}</td>
-                                        <td>
-                                            {isEditing[veteran.studentId] ? (
-                                                <select
-                                                    value={editingBenefits[veteran.studentId] || benefit}
-                                                    onChange={(e) => {
-                                                        setEditingBenefits({
-                                                            ...editingBenefits,
-                                                            [veteran.studentId]: e.target.value
-                                                        });
-                                                    }}
-                                                    className="benefit-box"
-                                                >
-                                                    {Object.keys(requiredDocsMapping).map(ben => (
-                                                        <option key={ben} value={ben}>{ben}</option>
-                                                    ))}
-                                                </select>
-                                            ) : (
-                                                <span>{benefit}</span>
-                                            )}
-                                        </td>
-                                        <td>
-                                            <div className="document-container">
-                                            <div className="checkbox-column">
-                                            {requiredDocs.map((doc, docIndex) => (
-                                                        <input
-                                                        key={docIndex}
-                                                        type="checkbox"
-                                                        checked={checkedDocuments[`${veteran.studentId}-${doc}`] || getDocumentStatus(veteran.studentId, doc)}
-                                                        onChange={() => handleCheckboxChange(`${veteran.studentId}-${doc}`, veteran.studentId)}
-                                                        />
-                                                    ))}
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={!!dateChecked[veteran.studentId]}
-                                                        onChange={() => handleDateToggle(veteran.studentId)}
-                                                    />
-                                                    </div>
-                                                    <div className="documents-column">
-                                                        {requiredDocs.map((doc, docIndex) => {
-                                                        const isValid = getDocumentStatus(veteran.studentId, doc);
-                                                        const isChecked = checkedDocuments[`${veteran.studentId}-${doc}`] || isValid;
-                
-                                                        return (
-                                                            <div key={docIndex} className={`document-box ${isChecked ? 'checked' : ''}`}>
-                                                            <span>{doc}</span>
-                                                            <div className="status-icons">
-                                                            {isValid ? (
-                                                            <Check className="status-icon valid" />
-                                                            ) : (
-                                                            <X className="status-icon invalid" />
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                );
-                                                })}
-                                                    <div className="document-box">
-                                                        <span className="date-text">
-                                                        <span>Date</span>
-                                                            {dateChecked[veteran.studentId] && 
-                                                                new Date(dateChecked[veteran.studentId]).toLocaleDateString('en-US', {
-                                                                    month: 'numeric',
-                                                                    day: 'numeric'
-                                                                })
-                                                            }
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
+                    <DataTable 
+                        filteredData={filteredData}
+                        studentBenefitsMap={studentBenefitsMap}
+                        requiredDocsMapping={requiredDocsMapping}
+                        isEditing={isEditing}
+                        editingBenefits={editingBenefits}
+                        setEditingBenefits={setEditingBenefits}
+                        checkedDocuments={checkedDocuments}
+                        handleCheckboxChange={handleCheckboxChange}
+                        getDocumentStatus={getDocumentStatus}
+                        dateChecked={dateChecked}
+                        handleDateToggle={handleDateToggle}
+                    />
                 ) : (
-                    <div>
+                    <div className="no-data-message">
                         {searchTerm ? 'No matching results found' : 'No data available'}
                     </div>
                 )}
             </div>
         </div>
     );
-
 };
 
 export default MergedDocumentTracker;

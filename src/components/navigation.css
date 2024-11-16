@@ -42,13 +42,6 @@ html, body {
     overflow: hidden; /* Hide any overflow */
 }
 
-/* Special styling for the Scan button */
-.box-scan {
-    background-color: #007bff; /* Blue background for Scan button */
-    padding: 12px 20px; /* Ensure same padding as in .box */
-    height: 55px; /* Ensure same height */
-    font-size: 22px; /* Ensure font size is consistent */
-}
 
 /* Logout button styling */
 .logout-button {

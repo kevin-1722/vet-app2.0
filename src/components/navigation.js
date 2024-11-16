@@ -88,7 +88,6 @@ const Navigation = () => {
     return (
         <div className="navbar">
             <div className="container">
-                <div className="box box-scan" onClick={() => openModal('scan')}>Scan</div>
                 <div className="box" onClick={() => openModal('coe')}>COE</div>
                 <div className="box" onClick={() => openModal('enrollment')}>Enrollment MG</div>
                 <div className="box" onClick={() => openModal('schedule')}>Schedule</div>
