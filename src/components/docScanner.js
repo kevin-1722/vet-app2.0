@@ -1,5 +1,5 @@
 // src/components/docScanner.js
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, forwardRef, useImperativeHandle } from 'react';
 import * as XLSX from 'xlsx';
 import { 
     fetchDigitalFilingCabinetId, fetchChildren, fetchFileCabinetId, fetchStudentRecordsId, 
@@ -10,12 +10,13 @@ import Search from './search';
 import DataTable from './dataTable';
 import './docScanner.css';
 
-const MergedDocumentTracker = () => {
+const MergedDocumentTracker = forwardRef(({ setIsLoading }, ref) => {
     const [dateChecked, setDateChecked] = useState(() => {
         const stored = localStorage.getItem('dateChecked');
         return stored ? JSON.parse(stored) : {};
     });
     const [showCompleted, setShowCompleted] = useState(false);
+    const [isAutoRefreshEnabled, setIsAutoRefreshEnabled] = useState(false);
     const [data, setData] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [error, setError] = useState(null);
@@ -33,6 +34,10 @@ const MergedDocumentTracker = () => {
     const [hasScanned, setHasScanned] = useState(false);
     const [studentBenefitsMap, setStudentBenefitsMap] = useState({});
 
+    //console.log(fileCabinetContents);
+    //console.log(studentRecordsContents);
+    //console.log(currentStudentsContents);
+
     const requiredDocsMapping = {
         'Chapter 30': ['COE', 'Enrollment Manager', 'Schedule'],
         'Chapter 31': ['Enrollment Manager', 'Schedule'],
@@ -43,7 +48,6 @@ const MergedDocumentTracker = () => {
         'Missouri Returning Heroes': ['DD214', 'Enrollment Manager', 'Schedule'],
         'Chapter 1606': ['COE', 'Enrollment Manager', 'Schedule'],
     };
-
 
     useEffect(() => {
         const storedCheckedDocs = localStorage.getItem('checkedDocuments');
@@ -108,8 +112,8 @@ const MergedDocumentTracker = () => {
             try {
                 const folderId = await fetchDigitalFilingCabinetId();
                 const fileCabinetId = await fetchFileCabinetId(driveId, folderId);
-                const fileCabinetChildren = await fetchChildren(driveId, fileCabinetId);
-                setFileCabinetContents(fileCabinetChildren.value);
+                const fileCabinetContents = await fetchChildren(driveId, fileCabinetId);
+                setFileCabinetContents(fileCabinetContents.value);
     
                 const studentRecordsId = await fetchStudentRecordsId(driveId, fileCabinetId);
                 const studentRecordsChildren = await fetchChildren(driveId, studentRecordsId);
@@ -129,23 +133,32 @@ const MergedDocumentTracker = () => {
             }
         };
     
+ 
         const handleRefresh = async () => {
             setLoading(true);
             setError(null);
-            setHasScanned(false);
-            setValidationResultsMap({});
             
             try {
+                // Preserve existing validation results and checked documents
+                const previousValidationResultsMap = { ...validationResultsMap };
+                const previousCheckedDocuments = { ...checkedDocuments };
+    
                 await Promise.all([
                     fetchExcelData(),
                     loadFolderContents()
                 ]);
+    
+                // Restore previous validation results and checked documents
+                setValidationResultsMap(previousValidationResultsMap);
+                setCheckedDocuments(previousCheckedDocuments);
+                setHasScanned(hasScanned); // Preserve the previous scanned state
             } catch (error) {
                 setError('Failed to refresh data. Please try again.');
             } finally {
                 setLoading(false);
             }
         };
+
     
         useEffect(() => {
             if (data.length === 0) {
@@ -272,6 +285,21 @@ const MergedDocumentTracker = () => {
             Object.entries(studentFoldersMap).forEach(([studentName, subFolders]) => {
                 validateNamingConventions(studentName, subFolders);
             });
+            const updatedCheckedDocs = { ...checkedDocuments };
+            data.forEach(student => {
+                const studentId = student.studentId;
+                const benefit = studentBenefitsMap[studentId] || '';
+                const requiredDocs = requiredDocsMapping[benefit] || [];
+                requiredDocs.forEach(docType => {
+                    const docKey = `${studentId}-${docType}`;
+                    const isValidFromScan = getDocumentStatus(studentId, docType);
+                    if (!isValidFromScan && updatedCheckedDocs[docKey]) {
+                        delete updatedCheckedDocs[docKey];
+                    }
+                });
+            });
+            setCheckedDocuments(updatedCheckedDocs);
+            localStorage.setItem('checkedDocuments', JSON.stringify(updatedCheckedDocs));
             setHasScanned(true);
         }
     };
@@ -296,13 +324,26 @@ const MergedDocumentTracker = () => {
     const filterData = (data, searchTerm) => {
         return data.filter(item => {
             const fullName = item.name || 'Unknown';
-            const [lastName, firstName] = fullName.split(',').map(name => name.trim());
             const studentId = item.studentId ? item.studentId.toString() : '';
             const benefit = studentBenefitsMap[studentId] || '';
+            let lastName = '';
+            let firstName = fullName;
+            if (fullName.includes(',')) {
+                try {
+                    [lastName, firstName] = fullName.split(',').map(name => name.trim());
+                } catch (error) {
+                    firstName = fullName;
+                    lastName = '';
+                }
+            }
+            const fullNameFirstLast = `${firstName} ${lastName}`.trim();
             const matchesSearch = 
-                firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (firstName && firstName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (lastName && lastName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                fullNameFirstLast.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 studentId.includes(searchTerm.toLowerCase());
+            
             const isComplete = isStudentComplete(studentId, benefit);
             
             return matchesSearch && (showCompleted ? isComplete : !isComplete);
@@ -334,14 +375,16 @@ const MergedDocumentTracker = () => {
         localStorage.setItem('dateChecked', JSON.stringify(updatedDates));
     }, []);
 
-    const handleCheckboxChange = (docId, studentId) => {
+        const handleCheckboxChange = (docId, studentId) => {
         setCheckedDocuments(prev => {
             const newChecked = !prev[docId];
             const updatedCheckedDocs = {
                 ...prev,
                 [docId]: newChecked,
             };
-            localStorage.setItem('checkedDocuments', JSON.stringify(updatedCheckedDocs));
+            if (!hasScanned || newChecked) {
+                localStorage.setItem('checkedDocuments', JSON.stringify(updatedCheckedDocs));
+            }
             return updatedCheckedDocs;
         });
     };
@@ -359,22 +402,6 @@ const MergedDocumentTracker = () => {
         });
     };
 
-    useEffect(() => {
-        if (hasScanned) {
-            const updatedCheckedDocs = { ...checkedDocuments };
-            Object.entries(validationResultsMap).forEach(([studentId, results]) => {
-                Object.entries(results).forEach(([docType, isValid]) => {
-                    const docKey = `${studentId}-${docType}`;
-                    if (!isValid && updatedCheckedDocs[docKey]) {
-                        delete updatedCheckedDocs[docKey];
-                    }
-                });
-            });
-            setCheckedDocuments(updatedCheckedDocs);
-            localStorage.setItem('checkedDocuments', JSON.stringify(updatedCheckedDocs));
-        }
-    }, [hasScanned, validationResultsMap]);
-
     const getCompletionCounts = () => {
         const incomplete = data.filter(item => 
             !isStudentComplete(item.studentId, studentBenefitsMap[item.studentId])
@@ -389,6 +416,64 @@ const MergedDocumentTracker = () => {
 
     const { incomplete, complete } = getCompletionCounts();
 
+    useEffect(() => {
+        // Default to refreshing every 5 minutes (300000 milliseconds)
+        const REFRESH_INTERVAL = 5 * 60 * 1000;
+        let intervalId;
+
+        // Inline refresh function
+        const performAutoRefresh = async () => {
+            // Check if not already loading to prevent multiple simultaneous refreshes
+            if (!loading) {
+                try {
+                    setLoading(true);
+                    setError(null);
+                    setHasScanned(false);
+                    setValidationResultsMap({});
+                    
+                    await Promise.all([
+                        fetchExcelData(),
+                        loadFolderContents()
+                    ]);
+                    setValidationResultsMap({});
+                    
+                    console.log('Automatic refresh completed');
+                } catch (error) {
+                    setError('Failed to refresh data. Please try again.');
+                    console.error('Automatic refresh failed:', error);
+                } finally {
+                    setLoading(false);
+                }
+            }
+        };
+
+        if (isAutoRefreshEnabled) {
+            // Set up new interval only when auto-refresh is enabled
+            intervalId = setInterval(performAutoRefresh, REFRESH_INTERVAL);
+        }
+
+        // Cleanup function to clear interval when component unmounts or auto-refresh is disabled
+        return () => {
+            if (intervalId) {
+                clearInterval(intervalId);
+            }
+        };
+    }, [isAutoRefreshEnabled, loading, fetchExcelData, loadFolderContents]);
+
+    // Toggle auto-refresh
+    const toggleAutoRefresh = () => {
+        setIsAutoRefreshEnabled(prev => !prev);
+    };
+
+    useImperativeHandle(ref, () => ({
+        handleScan,
+        handleRefresh
+    }));
+
+    useEffect(() => {
+        // Update the parent component about loading state
+        setIsLoading(loading);
+    }, [loading, setIsLoading]);
 
     return (
         <div className="secure-page">
@@ -408,25 +493,15 @@ const MergedDocumentTracker = () => {
                         >
                             Complete ({complete})
                         </button>
+                        <button 
+                            className="auto-refresh-button"
+                            onClick={toggleAutoRefresh}
+                        >
+                            {isAutoRefreshEnabled ? 'Disable Auto-Refresh' : 'Enable Auto-Refresh'}
+                        </button>
                     </div>
                     <div>
                         <Search searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
-                    </div>
-                    <div className="scan-button-container">
-                        <button 
-                            className="refresh-button"
-                            onClick={handleRefresh}
-                            disabled={loading}
-                        >
-                            {loading ? 'Refreshing...' : 'Refresh Data'}
-                        </button>
-                        <button 
-                            className="scan-button"
-                            onClick={handleScan}
-                            disabled={!isDataLoaded}
-                        >
-                            Scan Documents
-                        </button>
                     </div>
                 </div>
                 
@@ -455,6 +530,6 @@ const MergedDocumentTracker = () => {
             </div>
         </div>
     );
-};
+});
 
 export default MergedDocumentTracker;

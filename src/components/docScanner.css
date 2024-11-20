@@ -52,22 +52,22 @@ body {
 
 .data-table th:first-child,
 .data-table td:first-child {
-    width: 25%; 
+    width: 20%; 
 }
 
 .data-table th:nth-child(2),
 .data-table td:nth-child(2) {
-    width: 15%; 
+    width: 12%; 
 }
 
 .data-table th:nth-child(3),
 .data-table td:nth-child(3) {
-    width: 15%; 
+    width: 20%; 
 }
 
 .data-table th:nth-child(4),
 .data-table td:nth-child(4) {
-    width: 50%; 
+    width: 48%; 
 }
 
 .data-table tr:hover {
@@ -152,7 +152,7 @@ body {
 .checkbox-column {
     display: flex;
     flex-direction: column;
-    gap: 28px;
+    gap: 38px;
     align-items: center;
     margin-right: 10px;
     position: absolute;
@@ -187,6 +187,7 @@ body {
     display: inline-flex;
     align-items: center;
     margin-left: 8px;
+    flex-shrink: 0;
 }
 
 .status-icon {
@@ -207,15 +208,17 @@ body {
 .search-container {
     width: 100%;
     max-width: 200px;
-    margin: 20px auto; 
+    margin: 0px auto; 
+    margin-right: 630px;
     padding: 12px; 
     background-color: #ffffff; 
     border: 2px solid #007bff; 
     border-radius: 10px; 
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); 
     display: flex; 
-    justify-content: space-between; 
+    justify-content: center;
     align-items: center; 
+    text-align: center;
 }
 
 .search-input {
@@ -294,20 +297,43 @@ body {
 .date-container {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
     margin-top: 20px;
+    margin-right: 20px;
     justify-content: flex-end;
-}
-.date-text {
-    color: #666;
-    font-size: 18px;
-    padding: 6px 10px;
+    position: relative;
+    height: 32px;
 }
 
+.date-container input[type="checkbox"] {
+    margin: 0;
+    width: 20px;
+    height: 20px;
+    position: relative;
+    top: 0;
+    cursor: pointer;
+}
+
+.date-text {
+    color: #666;
+    font-size: 16px;
+    font-weight: 500;
+    padding: 6px 4px;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+}
 .document-box span.date-text {
     background-color: transparent;
     color: #666;
     padding: 0;
+}
+.document-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    white-space: nowrap;
 }
 
 .document-box span:not(.date-text) {
@@ -316,6 +342,12 @@ body {
     padding: 8px;
     border-radius: 5px;
     transition: background-color 0.3s ease;
+    min-width: 160px;
+    display: inline-block;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .document-box.checked span:not(.date-text) {

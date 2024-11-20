@@ -13,9 +13,10 @@ export const AuthProvider = ({ children }) => {
 
     const logout = async () => {
         try {
+            const redirectUri = process.env.REACT_APP_LOGOUT_URI || window.location.origin;
             await msalInstance.logoutPopup({
-                postLogoutRedirectUri: 'http://localhost:3001',
-                mainWindowRedirectUri: 'http://localhost:3001',
+                postLogoutRedirectUri: redirectUri, // Dynamic redirect URI
+                mainWindowRedirectUri: redirectUri,
             });
             localStorage.removeItem('msalAccount');
             localStorage.removeItem('isAuthenticated');

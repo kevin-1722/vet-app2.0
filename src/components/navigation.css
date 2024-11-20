@@ -63,10 +63,6 @@ html, body {
     background-color: #5a6268; 
 }
 
-.box-scan:hover {
-    background-color: #0056b3;
-}
-
 .logout-button:hover {
     background-color: #c82333; 
 }
@@ -119,4 +115,58 @@ iframe {
 
 .modal-content p {
     color: #666;
+}
+
+.scan-button {
+    background-color: #2196F3;/* Gray background for reference buttons */
+    color: white;
+    padding: 12px 20px; /* Keep the padding to add space inside the box */
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    text-align: center;
+    font-size: 22px; /* Increased font size */
+    min-width: 120px; /* Ensures a consistent button size */
+    display: flex; /* Enable flexbox layout */
+    justify-content: center; /* Center text horizontally */
+    align-items: center; /* Center text vertically */
+    height: 55px; /* Maintain the box height */
+    line-height: normal; /* Allow line-height to be normal for better wrapping */
+    overflow: hidden; /* Hide any overflow */
+}
+
+.scan-button:hover {
+    background-color: #0b7dda;
+}
+
+.scan-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+.refresh-button {
+    background-color: #6c757d; /* Green background */
+    color: white;
+    padding: 10px 28px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    text-align: center;
+    font-size: 14px; /* Slightly smaller font */
+    min-width: 70px; /* Smaller width */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 35px;
+    line-height: normal;
+    overflow: hidden;
+}
+
+.refresh-button:hover {
+    background-color: #5a6268;
+}
+
+.refresh-button.loading {
+    background-color: #6c757d;
+    cursor: not-allowed;
 }

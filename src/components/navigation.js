@@ -5,11 +5,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { fetchPdfsFromFolder, getFileDownloadUrl } from './graphService';
 
-const Navigation = () => {
+const Navigation = ({ onScanDocuments, onRefreshData, isLoading }) => {  // Add prop for scan documents
     const { isAuthenticated, logout } = useAuth();
     const [modal, setModal] = useState('');
-    const [pdfUrl, setPdfUrl] = useState(''); // State for PDF URL
-    const [loading, setLoading] = useState(false); // For loading state
+    const [pdfUrl, setPdfUrl] = useState('');
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -76,7 +76,7 @@ const Navigation = () => {
 
     // Instructions for the different modals
     const instructions = {
-        scan: "Instructions for Scan",
+        //scan: "Instructions for Scan",
         coe: "Instructions for COE",
         enrollment: "Instructions for Enrollment MG",
         schedule: "Instructions for Schedule",
@@ -88,6 +88,14 @@ const Navigation = () => {
     return (
         <div className="navbar">
             <div className="container">
+                <div 
+                    className={`refresh-button ${isLoading ? 'loading' : ''}`} 
+                    onClick={onRefreshData}
+                    disabled={isLoading}
+                >
+                    {isLoading ? 'Refreshing...' : 'Refresh'}
+                </div>
+                <div className="scan-button" onClick={() => onScanDocuments()}>Scan</div> 
                 <div className="box" onClick={() => openModal('coe')}>COE</div>
                 <div className="box" onClick={() => openModal('enrollment')}>Enrollment MG</div>
                 <div className="box" onClick={() => openModal('schedule')}>Schedule</div>
