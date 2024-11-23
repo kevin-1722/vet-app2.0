@@ -9,7 +9,7 @@ const DataTable = ({
     handleCheckboxChange,
     getDocumentStatus,
     dateChecked,
-    handleDateToggle 
+    handleDateToggle
 }) => {
     return (
         <table className="data-table">

@@ -93,7 +93,7 @@ const Navigation = ({ onScanDocuments, onRefreshData, isLoading }) => {  // Add 
                     onClick={onRefreshData}
                     disabled={isLoading}
                 >
-                    {isLoading ? 'Refreshing...' : 'Refresh'}
+                    {isLoading ? 'Refreshing...' : 'Refresh Data'}
                 </div>
                 <div className="scan-button" onClick={() => onScanDocuments()}>Scan</div> 
                 <div className="box" onClick={() => openModal('coe')}>COE</div>

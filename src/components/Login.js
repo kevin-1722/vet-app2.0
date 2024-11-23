@@ -23,12 +23,12 @@ function Login() {
                 localStorage.setItem('msalAccount', response.account.username);
                 console.log('Bearer Access Token:', response.accessToken);
                 login();
-                //setSuccess('Microsoft login successful!');
+                setSuccess('Microsoft login successful!');
                 navigate('/secure'); 
             }
         } catch (error) {
             console.error('Microsoft login failed:', error);
-            //setError('Microsoft login failed. Please try again.');
+            setError('Microsoft login failed. Please try again.');
         } finally {
             setIsLoggingIn(false);
         }

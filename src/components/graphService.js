@@ -111,3 +111,104 @@ export const getExcelFileDownloadUrl = async (driveId, folderId) => {
     if (!fileItem) throw new Error('File not found');
     return fileItem["@microsoft.graph.downloadUrl"];
 };
+
+export const getExcelFileDownloadUrl1 = async (driveId, folderId) => {
+    const response = await fetchChildren(driveId, folderId);
+    const fileItem = response.value.find(file => file.name === "RFC Veteran Form1.xlsx");
+    if (!fileItem) throw new Error('File not found');
+    return fileItem["@microsoft.graph.downloadUrl"];
+};
+
+export const createStudentFolder = async (driveId, parentFolderId, folderName) => {
+    try {
+        const accessToken = await AuthService.getAccessToken();
+        
+        const headers = new Headers();
+        headers.append('Authorization', `Bearer ${accessToken}`);
+        headers.append('Content-Type', 'application/json');
+
+        const body = {
+            name: folderName,
+            folder: {}
+        };
+
+        const options = {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(body)
+        };
+
+        const graphResponse = await fetch(
+            `https://graph.microsoft.com/v1.0/drives/${driveId}/items/${parentFolderId}/children`, 
+            options
+        );
+
+        if (!graphResponse.ok) {
+            throw new Error(`Graph API folder creation failed with status ${graphResponse.status}`);
+        }
+
+        return await graphResponse.json();
+    } catch (error) {
+        console.error('Error creating student folder:', error);
+        throw error;
+    }
+};
+
+export const fetchAllChildren = async (driveId, itemId) => {
+    let allChildren = [];
+    let nextLink = `https://graph.microsoft.com/v1.0/drives/${driveId}/items/${itemId}/children`;
+    
+    try {
+        while (nextLink) {
+            const accessToken = await AuthService.getAccessToken();
+            const headers = new Headers({
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            });
+            const response = await fetch(nextLink, { headers });
+            if (!response.ok) {
+                throw new Error(`Failed to fetch children: ${response.status}`);
+            }
+            const data = await response.json();
+            allChildren = [...allChildren, ...data.value];
+            nextLink = data['@odata.nextLink'] || null;
+        }
+        
+        return { value: allChildren };
+    } catch (error) {
+        console.error('Error in fetchAllChildren:', error);
+        throw new Error(`Failed to fetch all children: ${error.message}`);
+    }
+};
+
+export const createStudentFoldersInBatches = async (driveId, parentFolderId, missingFolders) => {
+    const BATCH_SIZE = 10;
+    const DELAY_BETWEEN_BATCHES = 2000;
+    const results = [];
+    const errors = [];
+    for (let i = 0; i < missingFolders.length; i += BATCH_SIZE) {
+        const batch = missingFolders.slice(i, i + BATCH_SIZE);
+        
+        try {
+            const batchResults = await Promise.all(
+                batch.map(student => 
+                    createStudentFolder(driveId, parentFolderId, `${student.name} ${student.studentId}`)
+                    .catch(error => {
+                        errors.push({
+                            studentName: `${student.name} ${student.studentId}`,
+                            error: error.message
+                        });
+                        return null;
+                    })
+                )
+            );
+            results.push(...batchResults.filter(result => result !== null));
+            if (i + BATCH_SIZE < missingFolders.length) {
+                await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_BATCHES));
+            }
+        } catch (error) {
+            console.error(`Error processing batch starting at index ${i}:`, error);
+        }
+    }
+    return { results, errors };
+};

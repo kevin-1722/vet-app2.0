@@ -13,7 +13,6 @@ class AuthService {
         this.initializationPromise = msalInstance.initialize()
             .then(() => {
                 this.isInitialized = true;
-                console.log('MSAL initialized successfully');
             })
             .catch(error => {
                 console.error('MSAL initialization failed:', error);
