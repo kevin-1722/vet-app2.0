@@ -21,6 +21,8 @@ const Navigation = ({ onScanDocuments, onRefreshData, isLoading }) => {  // Add 
     }, [navigate, isAuthenticated]);
 
     const handleLogout = async () => {
+        sessionStorage.removeItem('isFirstLoad');
+        localStorage.removeItem('hasScanned');
         await logout();
         navigate('/');
     };
@@ -46,18 +48,11 @@ const Navigation = ({ onScanDocuments, onRefreshData, isLoading }) => {  // Add 
             // Fetch PDF files from SharePoint
             const pdfs = await fetchPdfsFromFolder(siteId, driveId, programFilesFolderId);
 
-            // Log all PDFs to verify what is being fetched
-            console.log('Fetched PDFs:', pdfs);
-
             // Normalize the modal name to lowercase and remove spaces for matching
             const normalizedModalName = modalName.toLowerCase().replace(/\s+/g, '');
 
             // Find the PDF corresponding to the normalized modal (e.g., "dd214")
             const selectedPdf = pdfs.find(pdf => pdf.name.toLowerCase().replace(/\s+/g, '') === normalizedModalName + '.pdf');
-
-            // Log selected file and its name to help debug
-            console.log('Selected PDF:', selectedPdf);
-
             if (selectedPdf) {
                 const downloadUrl = await getFileDownloadUrl(selectedPdf.parentReference.driveId, selectedPdf.id);
                 // Use Google Docs Viewer to embed the PDF
@@ -118,7 +113,7 @@ const Navigation = ({ onScanDocuments, onRefreshData, isLoading }) => {  // Add 
                             <iframe 
                                 src={pdfUrl} 
                                 width="100%" 
-                                height="500px" 
+                                height="600px" 
                                 title="PDF Viewer"
                             />
                         ) : (

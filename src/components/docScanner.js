@@ -30,7 +30,19 @@ const MergedDocumentTracker = forwardRef(({ setIsLoading }, ref) => {
     const [subFolderContentMap, setSubFolderContentMap] = useState({}); 
     const [validationResultsMap, setValidationResultsMap] = useState({});
     const [isDataLoaded, setIsDataLoaded] = useState(false);
-    const [hasScanned, setHasScanned] = useState(false);
+    const [hasScanned, setHasScanned] = useState(() => {
+        // Check if this is a browser refresh
+        const isFirstLoad = sessionStorage.getItem('isFirstLoad') === null;
+        
+        if (isFirstLoad) {
+            // This is the first load of the session
+            sessionStorage.setItem('isFirstLoad', 'false');
+            return false;  // Show initial message
+        } else {
+            // This is a refresh or subsequent load within the same session
+            return localStorage.getItem('hasScanned') === 'true';
+        }
+    });
     const [studentBenefitsMap, setStudentBenefitsMap] = useState({});
     const [missingFolders, setMissingFolders] = useState([]);
     const [isCreatingFolders, setIsCreatingFolders] = useState(false);
@@ -152,15 +164,17 @@ const MergedDocumentTracker = forwardRef(({ setIsLoading }, ref) => {
             }
         };
     
-        useEffect(() => {
-            if (data.length === 0) {
-                fetchExcelData();
-            }
-        }, [data.length]);
-    
-        useEffect(() => {
-            loadFolderContents();
-        }, []);
+            // Modify the useEffect for initial data loading
+            useEffect(() => {
+                const loadInitialData = async () => {
+                    if (data.length === 0) {
+                        await fetchExcelData();
+                    }
+                    await loadFolderContents();
+                };
+        
+                loadInitialData();
+            }, []); // Remove data.length dependency
 
         const loadSubFolderContents = async (subFolderId) => {
             try {
@@ -179,9 +193,9 @@ const MergedDocumentTracker = forwardRef(({ setIsLoading }, ref) => {
         const loadAllStudentFolders = async (currentStudentsId, students) => {
             const newStudentFoldersMap = {};
             const processedFolders = new Set();
-            const CHUNK_SIZE = 50;
-            const CONCURRENT_CHUNKS = 3;
-            const DELAY_BETWEEN_CHUNKS = 300;
+            const CHUNK_SIZE = 30;
+            const CONCURRENT_CHUNKS = 2;
+            const DELAY_BETWEEN_CHUNKS = 500;
             
             try {
                 const allStudentFolders = await fetchAllChildren(driveId, currentStudentsId);
@@ -434,6 +448,7 @@ const MergedDocumentTracker = forwardRef(({ setIsLoading }, ref) => {
             setCheckedDocuments(newCheckedDocs);
             localStorage.setItem('checkedDocuments', JSON.stringify(newCheckedDocs));
             setHasScanned(true);
+            localStorage.setItem('hasScanned', 'true');
         }
     };
 
@@ -619,6 +634,8 @@ const MergedDocumentTracker = forwardRef(({ setIsLoading }, ref) => {
         <div className="secure-page">
             <div className="content">
                 <img src="https://i.imgur.com/SROEj2Q.jpeg" alt="Company Logo" className="company-logo" />
+                {hasScanned && (
+                    <>
                 <div className="header-controls">
                     <div className="view-toggle">
                         <button 
@@ -644,6 +661,8 @@ const MergedDocumentTracker = forwardRef(({ setIsLoading }, ref) => {
                         <Search searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
                     </div>
                 </div>
+                </>
+                )}
                 {hasScanned && missingFolders.length > 0 && (
                 <div className="missing-folders-alert">
                     <h3>{missingFolders.length} Student Folders Not Found</h3>
@@ -663,10 +682,18 @@ const MergedDocumentTracker = forwardRef(({ setIsLoading }, ref) => {
                 </div>
             )}
                 
-                {error && <div className="error-message">{error}</div>}
-                {loading && <div className="loading-message">Loading...</div>}
+                {!hasScanned && (
+                    <div className="initial-scan-message">
+                        <h2>Welcome to the Document Tracker</h2>
+                        <p>Click the "Scan" button above to view the table and begin scanning documents.</p> 
+                    </div>
+                )}
+                 {error && <div className="error-message">{error}</div>}
+                 {loading && <div className="loading-message">Loading Data...</div>}
                
-                {filteredData.length > 0 ? (
+                {/* Only show table after scanning and when there's data */}
+                {hasScanned && filteredData.length > 0 && (
+
                     <DataTable 
                         filteredData={filteredData}
                         studentBenefitsMap={studentBenefitsMap}
@@ -679,7 +706,8 @@ const MergedDocumentTracker = forwardRef(({ setIsLoading }, ref) => {
                         dateChecked={dateChecked}
                         handleDateToggle={handleDateToggle}
                     />
-                ) :hasScanned && (
+                )} 
+                {hasScanned && filteredData.length === 0 && (
                     <div className="no-data-message">
                         {searchTerm ? 'No matching results found' : 'No data available'}
                     </div>

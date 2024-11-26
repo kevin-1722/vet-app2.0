@@ -3,7 +3,16 @@
 import AuthService from './AuthService';
 import { driveId } from './config'; 
 
-export const graphApiFetch = async (url, method = 'GET', body = null) => {
+const RATE_LIMIT = {
+    maxRetries: 3,
+    initialRetryDelay: 2000,
+    maxRetryDelay: 10000,
+    backoffFactor: 2
+};
+
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+const graphApiFetch = async (url, method = 'GET', body = null, retryCount = 0) => {
     try {
         const accessToken = await AuthService.getAccessToken();
         
@@ -18,6 +27,33 @@ export const graphApiFetch = async (url, method = 'GET', body = null) => {
         };
 
         const graphResponse = await fetch(`https://graph.microsoft.com/v1.0${url}`, options);
+        
+        // Handle rate limiting
+        if (graphResponse.status === 429) {
+            console.error('Rate limit hit:', {
+                url,
+                method,
+                retryCount,
+                headers: Object.fromEntries(graphResponse.headers.entries())
+            });
+            if (retryCount >= RATE_LIMIT.maxRetries) {
+                throw new Error('Maximum retry attempts reached');
+            }
+
+            // Get retry-after header or use exponential backoff
+            const retryAfter = graphResponse.headers.get('Retry-After');
+            const baseDelay = retryAfter ? 
+                parseInt(retryAfter) * 1000 : 
+                Math.min(
+                    RATE_LIMIT.initialRetryDelay * Math.pow(RATE_LIMIT.backoffFactor, retryCount),
+                    RATE_LIMIT.maxRetryDelay
+                );
+            const jitterDelay = baseDelay * (1 + Math.random());
+            console.warn(`Rate limited. Retrying in ${jitterDelay/1000} seconds...`);
+            await delay(jitterDelay);
+            return graphApiFetch(url, method, body, retryCount + 1);
+        }
+
         if (!graphResponse.ok) {
             throw new Error(`Graph API request failed with status ${graphResponse.status}`);
         }
@@ -108,13 +144,6 @@ export const fetchChildren = async (driveId, itemId) => {
 export const getExcelFileDownloadUrl = async (driveId, folderId) => {
     const response = await fetchChildren(driveId, folderId);
     const fileItem = response.value.find(file => file.name === "RFC Dummy v2.xlsx");
-    if (!fileItem) throw new Error('File not found');
-    return fileItem["@microsoft.graph.downloadUrl"];
-};
-
-export const getExcelFileDownloadUrl1 = async (driveId, folderId) => {
-    const response = await fetchChildren(driveId, folderId);
-    const fileItem = response.value.find(file => file.name === "RFC Veteran Form1.xlsx");
     if (!fileItem) throw new Error('File not found');
     return fileItem["@microsoft.graph.downloadUrl"];
 };

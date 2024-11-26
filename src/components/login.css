@@ -53,11 +53,11 @@ input:focus {
     transform: scale(1.05); 
 }
 
-.error {
+.error-message {
     color: red;
     margin-bottom: 10px; 
 }
-.success {
+.success-message {
     color: green;
     font-weight: bold;
     margin-top: 10px;

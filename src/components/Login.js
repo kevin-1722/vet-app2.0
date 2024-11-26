@@ -21,7 +21,6 @@ function Login() {
             const response = await msalInstance.loginPopup(loginRequest);
             if (response && response.account) {
                 localStorage.setItem('msalAccount', response.account.username);
-                console.log('Bearer Access Token:', response.accessToken);
                 login();
                 setSuccess('Microsoft login successful!');
                 navigate('/secure'); 
@@ -39,6 +38,8 @@ function Login() {
             <img src="https://i.imgur.com/SROEj2Q.jpeg" alt="Logo" className="logo" />
             <h2>Login</h2>
             <button onClick={handleMsalLogin} className="login-button">Login with Microsoft</button>
+            {success && <p className="success-message">{success}</p>}
+            {error && <p className="error-message">{error}</p>}
         </div>
     );
 }
