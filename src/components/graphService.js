@@ -3,6 +3,7 @@
 import AuthService from './AuthService';
 import { driveId } from './config'; 
 
+// Rate limiting configuration to handle Microsoft Graph API request throttling
 const RATE_LIMIT = {
     maxRetries: 3,
     initialRetryDelay: 2000,
@@ -10,10 +11,13 @@ const RATE_LIMIT = {
     backoffFactor: 2
 };
 
+// Function to create a delay for retry mechanism
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
+// Graph API fetch GET request wrapper with  error handling and rate limit management
 const graphApiFetch = async (url, method = 'GET', body = null, retryCount = 0) => {
     try {
+        // Retrieve access token for authentication
         const accessToken = await AuthService.getAccessToken();
         
         const headers = new Headers();
@@ -25,7 +29,7 @@ const graphApiFetch = async (url, method = 'GET', body = null, retryCount = 0) =
             headers,
             body: body ? JSON.stringify(body) : null,
         };
-
+        // Perform the actual fetch to Microsoft Graph API
         const graphResponse = await fetch(`https://graph.microsoft.com/v1.0${url}`, options);
         
         // Handle rate limiting
@@ -65,11 +69,13 @@ const graphApiFetch = async (url, method = 'GET', body = null, retryCount = 0) =
     }
 };
 
+// Fetch top-level items from the specified drive
 export const fetchTopLevelItems = async () => {
     const items = await graphApiFetch(`/drives/${driveId}/root/children`);
     return items;
 };
 
+// Locate the ID of the Digital Filing Cabinet folder
 export const fetchDigitalFilingCabinetId = async () => {
     const items = await fetchTopLevelItems();
     const folder = items.value.find(item => item.name === "Digital File Cabinet");
@@ -77,46 +83,47 @@ export const fetchDigitalFilingCabinetId = async () => {
     return folder.id;
 };
 
+//Fetch the different channels in Teams
 export const fetchChannels = async (teamId) => {
     return graphApiFetch(`/teams/${teamId}/channels`);
 };
-
+// Locate the ID of the File Cabinet folder
 export const fetchFileCabinetId = async (driveId, parentFolderId) => {
     const children = await fetchChildren(driveId, parentFolderId);
     const folder = children.value.find(item => item.name === "File Cabinet");
     if (!folder) throw new Error('File Cabinet folder not found');
     return folder.id;
 };
-
+// Locate the ID of the Student Records folder
 export const fetchStudentRecordsId = async (driveId, parentFolderId) => {
     const children = await fetchChildren(driveId, parentFolderId);
     const folder = children.value.find(item => item.name === "Student Records");
     if (!folder) throw new Error('Student Records folder not found');
     return folder.id;
 };
-
+// Locate the ID of the 01 Current Students folder
 export const fetchCurrentStudentsId = async (driveId, parentFolderId) => {
     const children = await fetchChildren(driveId, parentFolderId);
     const folder = children.value.find(item => item.name === "01 Current Students");
     if (!folder) throw new Error('01 Current Students folder not found');
     return folder.id;
 };
-
+// Locate the ID for all students within the 01 Current Students folder
 export const fetchStudentFolderId = async (driveId, parentFolderId, studentName) => {
     const children = await fetchChildren(driveId, parentFolderId);
     const folder = children.value.find(item => item.name === studentName);
     if (!folder) throw new Error(`${studentName} folder not found`);
     return folder.id;
 };
- 
+// Fetch contents inside of each student's folder 
 export const fetchStudentFolderContents= async (driveId, studentFolderId) => {
     return fetchChildren(driveId, studentFolderId);
 };
-
+// Fetch content inside each subfolder for each student
 export const fetchSubFolderContents = async (driveId, subFolderId) => {
     return fetchChildren(driveId, subFolderId);
 };
-
+// Fetches content ending in .pdf
 export const fetchPdfsFromFolder = async (siteId, driveId, folderId) => {
     try {
         const data = await fetchChildren(driveId, folderId);
@@ -127,7 +134,7 @@ export const fetchPdfsFromFolder = async (siteId, driveId, folderId) => {
         return [];
     }
 };
-
+// Gets the download URL for the file
 export const getFileDownloadUrl = async (driveId, fileId) => {
     try {
         const response = await graphApiFetch(`/drives/${driveId}/items/${fileId}`);
@@ -137,10 +144,12 @@ export const getFileDownloadUrl = async (driveId, fileId) => {
         return null;
     }
 };
-
+// Fetches the sub-items of a specified item in a drive
 export const fetchChildren = async (driveId, itemId) => {
     return graphApiFetch(`/drives/${driveId}/items/${itemId}/children`);
 };
+
+// Gets the download URL for the RFC Dummy v2.xlsx excel sheet
 export const getExcelFileDownloadUrl = async (driveId, folderId) => {
     const response = await fetchChildren(driveId, folderId);
     const fileItem = response.value.find(file => file.name === "RFC Dummy v2.xlsx");
@@ -148,6 +157,7 @@ export const getExcelFileDownloadUrl = async (driveId, folderId) => {
     return fileItem["@microsoft.graph.downloadUrl"];
 };
 
+// Graph API fetch POST request wrapper to create student folders in Sharepoint
 export const createStudentFolder = async (driveId, parentFolderId, folderName) => {
     try {
         const accessToken = await AuthService.getAccessToken();
@@ -183,11 +193,13 @@ export const createStudentFolder = async (driveId, parentFolderId, folderName) =
     }
 };
 
+// Fetch folder contents with pagination
 export const fetchAllChildren = async (driveId, itemId) => {
     let allChildren = [];
     let nextLink = `https://graph.microsoft.com/v1.0/drives/${driveId}/items/${itemId}/children`;
     
     try {
+        // Paginate through all child items to handle large folders
         while (nextLink) {
             const accessToken = await AuthService.getAccessToken();
             const headers = new Headers({
@@ -209,12 +221,13 @@ export const fetchAllChildren = async (driveId, itemId) => {
         throw new Error(`Failed to fetch all children: ${error.message}`);
     }
 };
-
+// Batch creation of student folders with error handling and rate limiting
 export const createStudentFoldersInBatches = async (driveId, parentFolderId, missingFolders) => {
     const BATCH_SIZE = 10;
     const DELAY_BETWEEN_BATCHES = 2000;
     const results = [];
     const errors = [];
+     // Process student folders in batches to avoid overwhelming the API
     for (let i = 0; i < missingFolders.length; i += BATCH_SIZE) {
         const batch = missingFolders.slice(i, i + BATCH_SIZE);
         
@@ -232,6 +245,7 @@ export const createStudentFoldersInBatches = async (driveId, parentFolderId, mis
                 )
             );
             results.push(...batchResults.filter(result => result !== null));
+            // Add delay between batches to prevent rate limiting
             if (i + BATCH_SIZE < missingFolders.length) {
                 await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_BATCHES));
             }

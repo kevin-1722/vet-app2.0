@@ -1,17 +1,20 @@
-// src/components/Navigation.js
+// src/components/navigation.js
 import React, { useState, useEffect } from 'react';
 import './navigation.css';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { fetchPdfsFromFolder, getFileDownloadUrl } from './graphService';
+import { driveId, siteId, programFilesFolderId } from './config';
 
-const Navigation = ({ onScanDocuments, onRefreshData, isLoading }) => {  // Add prop for scan documents
+const Navigation = ({ onScanDocuments, onRefreshData, isLoading }) => {
+    // Authentication and navigation hooks
     const { isAuthenticated, logout } = useAuth();
     const [modal, setModal] = useState('');
     const [pdfUrl, setPdfUrl] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
+    // Redirect to login page if no authentication token exists
     useEffect(() => {
         const token = localStorage.getItem('token');
         const msalAccount = localStorage.getItem('msalAccount');
@@ -20,6 +23,7 @@ const Navigation = ({ onScanDocuments, onRefreshData, isLoading }) => {  // Add 
         }
     }, [navigate, isAuthenticated]);
 
+    // Handle logout process, clearing session and local storage
     const handleLogout = async () => {
         sessionStorage.removeItem('isFirstLoad');
         localStorage.removeItem('hasScanned');
@@ -27,25 +31,24 @@ const Navigation = ({ onScanDocuments, onRefreshData, isLoading }) => {  // Add 
         navigate('/');
     };
 
+     // Open modal and fetch corresponding PDF
     const openModal = (modalName) => {
         setModal(modalName);
         fetchPdfUrl(modalName); // Fetch PDF URL based on modalName
     };
 
+    // Clear the PDF URL when modal closes
     const closeModal = () => {
         setModal('');
-        setPdfUrl(''); // Clear the PDF URL when modal closes
+        setPdfUrl('');
     };
 
     // Fetch the PDF URL from SharePoint based on the selected modal
     const fetchPdfUrl = async (modalName) => {
         setLoading(true); // Set loading state to true
         try {
-            const siteId = 'quadrigisduo.sharepoint.com,39eaa12d-014c-4efc-929f-af7186f3d4b6,af41b481-5f9d-4cc7-9eae-dac87b2f033e'; // Your site ID
-            const driveId = 'b!LaHqOUwB_E6Sn69xhvPUtoG0Qa-dX8dMnq7ayHsvAz4uxaEhOaTLQ7K-kDZ2Itwf'; // Your drive ID
-            const programFilesFolderId = '01WZNNVP5M4B3WJJNEHJCJKBZ7XZADQWA2'; // Program files folder ID
 
-            // Fetch PDF files from SharePoint
+            // Fetch PDF files from specified SharePoint folder
             const pdfs = await fetchPdfsFromFolder(siteId, driveId, programFilesFolderId);
 
             // Normalize the modal name to lowercase and remove spaces for matching
@@ -69,20 +72,20 @@ const Navigation = ({ onScanDocuments, onRefreshData, isLoading }) => {  // Add 
         }
     };
 
-    // Instructions for the different modals
+    // Instructions for the different document types
     const instructions = {
-        //scan: "Instructions for Scan",
         coe: "Instructions for COE",
         enrollment: "Instructions for Enrollment MG",
         schedule: "Instructions for Schedule",
         dd214: "Instructions for DD214",
         tar: "Instructions for TAR",
-        awardletter: "Instructions for Award Letter", // Ensure consistent key naming
+        awardletter: "Instructions for Award Letter",
     };
 
     return (
         <div className="navbar">
             <div className="container">
+                {/* Data refresh button with loading state */}
                 <div 
                     className={`refresh-button ${isLoading ? 'loading' : ''}`} 
                     onClick={onRefreshData}
@@ -90,25 +93,28 @@ const Navigation = ({ onScanDocuments, onRefreshData, isLoading }) => {  // Add 
                 >
                     {isLoading ? 'Refreshing...' : 'Refresh Data'}
                 </div>
+                 {/* Scan documents button */}
                 <div className="scan-button" onClick={() => onScanDocuments()}>Scan</div> 
+                {/* Document buttons for instructions on how to retrieve and name them */}
                 <div className="box" onClick={() => openModal('coe')}>COE</div>
                 <div className="box" onClick={() => openModal('enrollment')}>Enrollment MG</div>
                 <div className="box" onClick={() => openModal('schedule')}>Schedule</div>
                 <div className="box" onClick={() => openModal('dd214')}>DD214</div>
                 <div className="box" onClick={() => openModal('tar')}>TAR</div>
                 <div className="box" onClick={() => openModal('awardletter')}>Award Letter</div>
+                {/* Logout button */}
                 <div className="logout-button" onClick={handleLogout}>Logout</div>
             </div>
 
+            {/* Modal for displaying document instructions and PDF */}
             {modal && (
                 <div className="modal" onClick={closeModal}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                         <span className="close" onClick={closeModal}>&times;</span>
-                        {/* Use .toLowerCase() to normalize the modal name and access instructions */}
                         <h2>{instructions[modal.toLowerCase().replace(/\s+/g, '')]}</h2> {/* Instructions display here */}
-
+                        {/* Conditional rendering for PDF loading and display */}
                         {loading ? (
-                            <p>Loading PDF...</p>  // Loading message
+                            <p>Loading PDF...</p> 
                         ) : pdfUrl ? (
                             <iframe 
                                 src={pdfUrl} 

@@ -1,6 +1,8 @@
 import React from 'react';
 import DocumentBox from './documentBox';
 
+// Data table renders a table of veteran students for document tracking
+// Handles display of student information, required documents, and document status
 const DataTable = ({ 
     filteredData, 
     studentBenefitsMap, 
@@ -13,6 +15,7 @@ const DataTable = ({
 }) => {
     return (
         <table className="data-table">
+            {/* Table headers for student information */}
             <thead>
                 <tr>
                     <th className="red-header">Name</th>
@@ -22,8 +25,11 @@ const DataTable = ({
                 </tr>
             </thead>
             <tbody>
+                 {/* Map through filtered veteran data to create table rows */}
                 {filteredData.map((veteran, index) => {
+                    // Retrieve benefit for the current student
                     const benefit = studentBenefitsMap[veteran.studentId] || '';
+                    // Get list of required documents for the student's benefit
                     const requiredDocs = requiredDocsMapping[benefit] || [];
 
                     return (
@@ -34,7 +40,9 @@ const DataTable = ({
                                 <span>{benefit}</span>
                             </td>
                             <td>
+                                {/* Container for document tracking and status */}
                                 <div className="document-container">
+                                    {/* Checkboxes for document selection */}
                                     <div className="checkbox-column">
                                         {requiredDocs.map((doc, docIndex) => (
                                             <input
@@ -45,6 +53,7 @@ const DataTable = ({
                                             />
                                         ))}
                                     </div>
+                                    {/* Document boxes showing validation status */}
                                     <div className="documents-column">
                                         {requiredDocs.map((doc, docIndex) => {
                                             const isValid = getDocumentStatus(veteran.studentId, doc);
@@ -59,6 +68,7 @@ const DataTable = ({
                                             );
                                         })}
                                     </div>
+                                    {/* Date tracking for to verify the last day documents were checked */}
                                     <div className="date-container">
                                         <input
                                             type="checkbox"
