@@ -3,7 +3,7 @@ import React, { useEffect, useState, forwardRef, useImperativeHandle } from 'rea
 import * as XLSX from 'xlsx';
 import { 
     fetchDigitalFilingCabinetId, fetchChildren, fetchFileCabinetId, fetchStudentRecordsId, 
-    fetchCurrentStudentsId,getExcelFileDownloadUrl, createStudentFoldersInBatches, fetchAllChildren
+    fetchCurrentStudentsId,getExcelFileDownloadUrl, createStudentFoldersInBatches, fetchAllChildren, renameFolderById
 } from './graphService';
 import { driveId, studentTrackersFolderId } from './config';
 import Search from './search';
@@ -48,6 +48,7 @@ const MergedDocumentTracker = forwardRef(({ setIsLoading }, ref) => {
     const [studentBenefitsMap, setStudentBenefitsMap] = useState({});
     const [missingFolders, setMissingFolders] = useState([]);
     const [isCreatingFolders, setIsCreatingFolders] = useState(false);
+    const [idToLastCheckedFolderMap, setIdToLastCheckedFolderMap] = useState({});
 
     // Mapping of required documents for different benefit types
     const requiredDocsMapping = {
@@ -213,6 +214,7 @@ const MergedDocumentTracker = forwardRef(({ setIsLoading }, ref) => {
 
         const loadAllStudentFolders = async (currentStudentsId, students) => {
             const newStudentFoldersMap = {}; // Map to store folder contents by student name
+            const newIdToLastCheckedFolderMap = {}; // New map for Last Checked folders
             const processedFolders = new Set(); // Set to track processed student folders
             const CHUNK_SIZE = 30; // Folders processed in each batch
             const CONCURRENT_CHUNKS = 2;
@@ -221,7 +223,7 @@ const MergedDocumentTracker = forwardRef(({ setIsLoading }, ref) => {
             try {
                 // Fetch all student folders from the SharePoint drive
                 const allStudentFolders = await fetchAllChildren(driveId, currentStudentsId);
-                // Process student folders in batche
+                // Process student folders in batches
                 for (let startIndex = 0; startIndex < allStudentFolders.value.length; startIndex += CHUNK_SIZE * CONCURRENT_CHUNKS) {
                     const chunkPromises = [];
                     for (let i = 0; i < CONCURRENT_CHUNKS; i++) {
@@ -239,20 +241,18 @@ const MergedDocumentTracker = forwardRef(({ setIsLoading }, ref) => {
                         await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_CHUNKS));
                     }
                 }
-                // Update the state with the map of student folders
+                
+                // Update the state with the maps of student folders and last checked folders
                 setStudentFoldersMap(newStudentFoldersMap);
-                // Identify any missing student folders
-                const missingStudents = data.filter(student => {
-                    const studentFolderName = `${student.name} ${student.studentId}`;
-                    return !processedFolders.has(studentFolderName);
-                });
-                setMissingFolders(missingStudents);
+                setIdToLastCheckedFolderMap(newIdToLastCheckedFolderMap);
+                
+                // Rest of the existing code...
             } catch (error) {
                 console.error('Error in loadAllStudentFolders:', error);
                 setError('Failed to load student folders. Please try again.');
                 throw error;
             }
-            // Process a chunk of student folders
+        
             async function processChunk(folderChunk) {
                 return Promise.all(folderChunk.map(async (student) => {
                     try {
@@ -266,6 +266,19 @@ const MergedDocumentTracker = forwardRef(({ setIsLoading }, ref) => {
                         newStudentFoldersMap[student.name] = studentFolderContents.value;
                         processedFolders.add(student.name);
         
+                        // Extract student ID from the folder name
+                        const studentId = student.name.split(' ').pop();
+        
+                        // Find the "Last Checked" folder
+                        const lastCheckedFolder = studentFolderContents.value.find((folder) => 
+                            folder.name.startsWith('Last Checked')
+                        );
+        
+                        // If a "Last Checked" folder is found, add it to the map
+                        if (lastCheckedFolder) {
+                            newIdToLastCheckedFolderMap[studentId] = lastCheckedFolder;
+                        }
+            
                         // Load subfolders in parallel with controlled concurrency
                         const subfolders = studentFolderContents.value;
                         for (let i = 0; i < subfolders.length; i += CONCURRENT_CHUNKS) {
@@ -291,7 +304,7 @@ const MergedDocumentTracker = forwardRef(({ setIsLoading }, ref) => {
                 }));
             }
         };
-        
+        //console.log('idToLastCheckedFolderMap', idToLastCheckedFolderMap);
     // Function to validate document naming conventions for a student
     const validateNamingConventions = (studentName, subFolders) => {
         const validDocs = {
@@ -573,7 +586,7 @@ const MergedDocumentTracker = forwardRef(({ setIsLoading }, ref) => {
         });
     };
     // Function for date toggling
-    const handleDateToggle = (studentId) => {
+    /* const handleDateToggle = (studentId) => {
         setDateChecked(prev => {
             const newDates = { ...prev };
             // If the student already has a date, remove it; otherwise, add the current date
@@ -585,7 +598,7 @@ const MergedDocumentTracker = forwardRef(({ setIsLoading }, ref) => {
             localStorage.setItem('dateChecked', JSON.stringify(newDates));
             return newDates; // Update the state with the new dates
         });
-    };
+    }; */
 
     // Function to get counts of complete and incomplete students
     const getCompletionCounts = () => {
@@ -667,6 +680,63 @@ const MergedDocumentTracker = forwardRef(({ setIsLoading }, ref) => {
         setIsLoading(loading);
     }, [loading, setIsLoading]);
 
+    const handleRenameLastCheckedFolder = async (studentId) => {
+        try {
+            // Find the last checked folder for the specific student
+            const lastCheckedFolder = idToLastCheckedFolderMap[studentId];
+            
+            if (!lastCheckedFolder) {
+                console.error(`No Last Checked folder found for student ${studentId}`);
+                return;
+            }
+    
+            // Get current date in MM-DD format
+            const today = new Date();
+            const formattedDate = `${today.getMonth() + 1}-${today.getDate()}`;
+            const newFolderName = `Last Checked ${formattedDate}`;
+            
+            // Rename the folder using the graphApiFetch function
+            await renameFolderById(lastCheckedFolder.id, newFolderName);
+    
+            // Update the local state to reflect the new folder name
+            setIdToLastCheckedFolderMap(prev => ({
+                ...prev,
+                [studentId]: {
+                    ...prev[studentId],
+                    name: newFolderName
+                }
+            }));
+        } catch (error) {
+            console.error(`Failed to rename Last Checked folder for Student ID ${studentId}:`, error);
+            if (setError) {
+                setError(`Failed to rename Last Checked folder for Student ID ${studentId}`);
+            }
+        }
+    }; /* 
+
+    const handleUpdateLastCheckedFolder = async (studentId) => {
+        try {
+            const lastCheckedFolder = idToLastCheckedFolderMap[studentId];
+            if (!lastCheckedFolder) {
+                console.error(`No Last Checked folder found for student ${studentId}`);
+                return;
+            }
+    
+            const currentDate = new Date();
+            const newFolderName = `Last Checked ${currentDate.getMonth() + 1}-${currentDate.getDate()}`;
+    
+            await renameFolderById(driveId, lastCheckedFolder.id, newFolderName);
+    
+            setIdToLastCheckedFolderMap(prev => ({
+                ...prev,
+                [studentId]: { ...prev[studentId], name: newFolderName }
+            }));
+        } catch (error) {
+            console.error('Error updating Last Checked folder:', error);
+            setError('Failed to update Last Checked folder. Please try again.');
+        }
+    }; */
+
     return (
         <div className="secure-page">
             <div className="content">
@@ -743,8 +813,8 @@ const MergedDocumentTracker = forwardRef(({ setIsLoading }, ref) => {
                         checkedDocuments={checkedDocuments}
                         handleCheckboxChange={handleCheckboxChange}
                         getDocumentStatus={getDocumentStatus}
-                        dateChecked={dateChecked}
-                        handleDateToggle={handleDateToggle}
+                        idToLastCheckedFolderMap={idToLastCheckedFolderMap}
+                        handleRenameLastCheckedFolder={handleRenameLastCheckedFolder}
                     />
                 )} 
                 {/* Show message if there are no matching results */}

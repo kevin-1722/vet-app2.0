@@ -20,7 +20,7 @@ export const AuthProvider = ({ children }) => {
         try {
             // Use configured redirect URI or default to current origin
             // Supports both local testing and production environments
-            const uri = redirectUri || window.location.origin;
+            const uri = window.location.origin;
             // Perform logout using MSAL popup method
             // Specify post-logout redirect URIs
             await msalInstance.logoutPopup({

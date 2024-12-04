@@ -10,8 +10,8 @@ const DataTable = ({
     checkedDocuments,
     handleCheckboxChange,
     getDocumentStatus,
-    dateChecked,
-    handleDateToggle
+    idToLastCheckedFolderMap,
+    handleRenameLastCheckedFolder,
 }) => {
     return (
         <table className="data-table">
@@ -31,6 +31,8 @@ const DataTable = ({
                     const benefit = studentBenefitsMap[veteran.studentId] || '';
                     // Get list of required documents for the student's benefit
                     const requiredDocs = requiredDocsMapping[benefit] || [];
+                    const lastCheckedFolder = idToLastCheckedFolderMap[veteran.studentId]?.name || 'N/A';
+                    const folderId = idToLastCheckedFolderMap[veteran.studentId]?.id;
 
                     return (
                         <tr key={index}>
@@ -69,20 +71,18 @@ const DataTable = ({
                                         })}
                                     </div>
                                     {/* Date tracking for to verify the last day documents were checked */}
-                                    <div className="date-container">
-                                        <input
-                                            type="checkbox"
-                                            checked={!!dateChecked[veteran.studentId]}
-                                            onChange={() => handleDateToggle(veteran.studentId)}
-                                        />
-                                        <span className="date-text">
-                                            Date: {dateChecked[veteran.studentId] && 
-                                                new Date(dateChecked[veteran.studentId]).toLocaleDateString('en-US', {
-                                                    month: 'numeric',
-                                                    day: 'numeric'
-                                                })
-                                            }
-                                        </span>
+                                    <div className="last-checked-folder">
+                                        {lastCheckedFolder} <br />
+                                        {folderId ? (
+                                            <button
+                                                className="rename-folder-button"
+                                                onClick={() => handleRenameLastCheckedFolder(veteran.studentId)}
+                                            >
+                                                Checked Student
+                                            </button>
+                                        ) : (
+                                            'No Folder'
+                                        )}
                                     </div>
                                 </div>
                             </td>

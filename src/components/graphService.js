@@ -221,30 +221,74 @@ export const fetchAllChildren = async (driveId, itemId) => {
         throw new Error(`Failed to fetch all children: ${error.message}`);
     }
 };
-// Batch creation of student folders with error handling and rate limiting
+
+export const renameFolderById = async (folderId, newName) => {
+    try {
+        const response = await graphApiFetch(`/drives/${driveId}/items/${folderId}`, 'PATCH', {
+            name: newName
+        });
+        return response;
+    } catch (error) {
+        console.error('Error renaming folder:', error);
+        throw error;
+    }
+};
+
+
 export const createStudentFoldersInBatches = async (driveId, parentFolderId, missingFolders) => {
     const BATCH_SIZE = 10;
     const DELAY_BETWEEN_BATCHES = 2000;
     const results = [];
     const errors = [];
-     // Process student folders in batches to avoid overwhelming the API
+    
+    // Process student folders in batches to avoid overwhelming the API
     for (let i = 0; i < missingFolders.length; i += BATCH_SIZE) {
         const batch = missingFolders.slice(i, i + BATCH_SIZE);
         
         try {
             const batchResults = await Promise.all(
-                batch.map(student => 
-                    createStudentFolder(driveId, parentFolderId, `${student.name} ${student.studentId}`)
-                    .catch(error => {
+                batch.map(async (student) => {
+                    try {
+                        // Create main student folder
+                        const studentFolder = await createStudentFolder(
+                            driveId, 
+                            parentFolderId, 
+                            `${student.name} ${student.studentId}`
+                        );
+
+                        // Create "00" subfolder
+                        const zeroFolder = await createStudentFolder(
+                            driveId, 
+                            studentFolder.id, 
+                            "00"
+                        );
+
+                        // Create "Last Checked" subfolder
+                        const lastCheckedFolder = await createStudentFolder(
+                            driveId, 
+                            studentFolder.id, 
+                            "Last Checked"
+                        );
+
+                        return {
+                            ...studentFolder,
+                            subfolders: {
+                                zero: zeroFolder,
+                                lastChecked: lastCheckedFolder
+                            }
+                        };
+                    } catch (error) {
                         errors.push({
                             studentName: `${student.name} ${student.studentId}`,
                             error: error.message
                         });
                         return null;
-                    })
-                )
+                    }
+                })
             );
+
             results.push(...batchResults.filter(result => result !== null));
+            
             // Add delay between batches to prevent rate limiting
             if (i + BATCH_SIZE < missingFolders.length) {
                 await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_BATCHES));
