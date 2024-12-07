@@ -7,12 +7,12 @@ The Veterans Center web application enhances and streamlines processes at UMSLâ€
 - **Secure Authentication**: Implements MSAL OAuth 2.0 flow for secure access.
 - **Automated Folder Management**:
   - Creates new SharePoint folders for veterans listed in the Excel file but lacking a folder.
-  - Updates folders with the latest access date to ensure all workers are aligned.
+  - Updates Last Checked folder in Sharepoint with the current date to ensure all workers' priorities are aligned.
 - **Document Management**:
-  - Scans SharePoint folders using naming logic to identify required documents for the selected benefits.
+  - Scans SharePoint folders using naming logic to identify which required documents are present in Sharepoint for the selected benefit.
   - Updates the application's document status based on scan results.
 - **Student Search**: Allows workers to search for students by name or ID, reducing manual effort.
-- **Quick Reference Guides**: Provides essential details about required documents for student certification.
+- **Quick Reference Guides**: Provides essential details for the workers about required documents for student certification.
 
 ## Benefits
 This application improves the efficiency and accuracy of the document collection process at UMSLâ€™s Veterans Center by:
