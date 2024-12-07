@@ -12,11 +12,6 @@ import './docScanner.css';
 
 // Component for tracking and validating student documents
 const MergedDocumentTracker = forwardRef(({ setIsLoading }, ref) => {
-    const [dateChecked, setDateChecked] = useState(() => {
-        // Retrieve previously checked dates from local storage
-        const stored = localStorage.getItem('dateChecked');
-        return stored ? JSON.parse(stored) : {};
-    });
     const [showCompleted, setShowCompleted] = useState(false);
     const [isAutoRefreshEnabled, setIsAutoRefreshEnabled] = useState(false);
     const [data, setData] = useState([]);
@@ -552,25 +547,9 @@ const MergedDocumentTracker = forwardRef(({ setIsLoading }, ref) => {
      // Load checked documents and dates from local storage on component mount
       useEffect(() => {
         const storedCheckedDocs = localStorage.getItem('checkedDocuments');
-        const storedDates = localStorage.getItem('dateChecked');
         if (storedCheckedDocs) {
             setCheckedDocuments(JSON.parse(storedCheckedDocs));
         }
-        if (storedDates) {
-            setDateChecked(JSON.parse(storedDates));
-        }
-        const now = new Date();
-        const updatedDates = { ...JSON.parse(storedDates || '{}') };
-        // Remove dates older than 7 days from the updated dates
-        Object.entries(updatedDates).forEach(([id, dateStr]) => {
-            const date = new Date(dateStr);
-            if ((now - date) > (7 * 24 * 60 * 60 * 1000)) { // 7 days in milliseconds
-                delete updatedDates[id]; 
-            }
-        });
-        setDateChecked(updatedDates);
-        // Update the state and local storage with the new dates
-        localStorage.setItem('dateChecked', JSON.stringify(updatedDates));
     }, []);
 
     const handleCheckboxChange = (docId, studentId) => {
@@ -585,20 +564,7 @@ const MergedDocumentTracker = forwardRef(({ setIsLoading }, ref) => {
             return updatedCheckedDocs;
         });
     };
-    // Function for date toggling
-    /* const handleDateToggle = (studentId) => {
-        setDateChecked(prev => {
-            const newDates = { ...prev };
-            // If the student already has a date, remove it; otherwise, add the current date
-            if (newDates[studentId]) {
-                delete newDates[studentId];
-            } else {
-                newDates[studentId] = new Date().toISOString();
-            }
-            localStorage.setItem('dateChecked', JSON.stringify(newDates));
-            return newDates; // Update the state with the new dates
-        });
-    }; */
+
 
     // Function to get counts of complete and incomplete students
     const getCompletionCounts = () => {
@@ -712,30 +678,7 @@ const MergedDocumentTracker = forwardRef(({ setIsLoading }, ref) => {
                 setError(`Failed to rename Last Checked folder for Student ID ${studentId}`);
             }
         }
-    }; /* 
-
-    const handleUpdateLastCheckedFolder = async (studentId) => {
-        try {
-            const lastCheckedFolder = idToLastCheckedFolderMap[studentId];
-            if (!lastCheckedFolder) {
-                console.error(`No Last Checked folder found for student ${studentId}`);
-                return;
-            }
-    
-            const currentDate = new Date();
-            const newFolderName = `Last Checked ${currentDate.getMonth() + 1}-${currentDate.getDate()}`;
-    
-            await renameFolderById(driveId, lastCheckedFolder.id, newFolderName);
-    
-            setIdToLastCheckedFolderMap(prev => ({
-                ...prev,
-                [studentId]: { ...prev[studentId], name: newFolderName }
-            }));
-        } catch (error) {
-            console.error('Error updating Last Checked folder:', error);
-            setError('Failed to update Last Checked folder. Please try again.');
-        }
-    }; */
+    }; 
 
     return (
         <div className="secure-page">
