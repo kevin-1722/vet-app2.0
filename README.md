@@ -1,3 +1,5 @@
+# Veterans Center Web Application
+
 The Veterans Center web application is designed to complement and streamline existing processes at UMSL’s Veterans Center. 
 It does not replace current systems but enhances process efficiency by narrowing in on key information and providing targeted data from the RFC spreadsheet.
 This allows workers to access and manage only the information necessary for individual certification tasks.  
